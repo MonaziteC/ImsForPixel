@@ -1,6 +1,6 @@
 # Pixel IMS
 
-[简体中文](README.md) · [Download v1.2.0](https://github.com/MonaziteC/PixelIMS/releases/tag/v1.2.0)
+[简体中文](README.md) · [Download v1.2.0](https://github.com/MonaziteC/ImsForPixel/releases/tag/v1.2.0)
 
 **Customize IMS and NR carrier settings on Pixel, with a guardian that can keep running after developer options are turned off.**
 
@@ -20,7 +20,7 @@ NR and icon settings do not force physical carrier aggregation or a 5G-Advanced 
 
 ## Getting started
 
-1. Download an APK from [Releases](https://github.com/MonaziteC/PixelIMS/releases).
+1. Download an APK from [Releases](https://github.com/MonaziteC/ImsForPixel/releases).
 2. Choose the desired settings for each SIM.
 3. Tap **Apply and protect**. Temporarily connect to Wi-Fi, enable wireless debugging and pair.
 4. Apply the settings and wait until the guardian reports that authorization is ready. Then turn developer options off.

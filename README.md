@@ -1,6 +1,6 @@
 # Pixel IMS
 
-[English](README.en.md) · [下载 v1.2.0](https://github.com/MonaziteC/PixelIMS/releases/tag/v1.2.0) · [使用指南](docs/USAGE.md) · [构建说明](docs/BUILDING.md)
+[English](README.en.md) · [下载 v1.2.0](https://github.com/MonaziteC/ImsForPixel/releases/tag/v1.2.0) · [使用指南](docs/USAGE.md) · [构建说明](docs/BUILDING.md)
 
 **为 Pixel 自定义 IMS 与 NR 配置，并在关闭开发者选项后持续守护。**
 
@@ -24,7 +24,7 @@ Pixel IMS 基于 [svenuks/ImsForPixel](https://github.com/svenuks/ImsForPixel)�
 
 ## 下载与开始使用
 
-从 [Releases](https://github.com/MonaziteC/PixelIMS/releases) 下载 APK。当前版本为 [v1.2.0](https://github.com/MonaziteC/PixelIMS/releases/tag/v1.2.0)。
+从 [Releases](https://github.com/MonaziteC/ImsForPixel/releases) 下载 APK。当前版本为 [v1.2.0](https://github.com/MonaziteC/ImsForPixel/releases/tag/v1.2.0)。
 
 1. 在“配置”页选择 SIM，并设置所需功能。
 2. 点击“应用并守护”，临时连接 Wi-Fi、开启无线调试并完成配对。
@@ -68,7 +68,7 @@ UI 使用官方 Material 3 1.4.0，当前构建通过 34 项 JVM / Compose 界�
 
 ## 反馈
 
-请在 [Issues](https://github.com/MonaziteC/PixelIMS/issues) 中描述机型、Android 版本、复现步骤、当前守护状态及预期行为。发布截图或日志前，请自行遮盖手机号、设备标识、IP 和其他个人信息；不要上传配对私钥或签名密钥。
+请在 [Issues](https://github.com/MonaziteC/ImsForPixel/issues) 中描述机型、Android 版本、复现步骤、当前守护状态及预期行为。发布截图或日志前，请自行遮盖手机号、设备标识、IP 和其他个人信息；不要上传配对私钥或签名密钥。
 
 ## 来源与许可
 
