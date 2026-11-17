@@ -1,0 +1,46 @@
+name: 问题反馈 / Bug report
+description: 报告可复现的问题，帮助定位配置、授权或界面故障。
+title: '[Bug] '
+body:
+  - type: markdown
+    attributes:
+      value: 请提供下面的信息。截图或日志请遮盖手机号、IMEI、IP、配对码等个人信息；不要上传私钥。
+  - type: input
+    id: device
+    attributes:
+      label: 机型 / Device
+      placeholder: Pixel 型号
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android 版本及更新 / Android version and update
+    validations:
+      required: true
+  - type: input
+    id: app_version
+    attributes:
+      label: Pixel IMS 版本 / App version
+    validations:
+      required: true
+  - type: dropdown
+    id: guardian
+    attributes:
+      label: 守护状态 / Guardian state
+      options:
+        - 正常守护 / Running
+        - 等待授权或启动 / Waiting for authorization
+        - 权限会话失效 / Authorization lost
+        - 正在恢复或等待重试 / Recovering
+        - 已停止 / Stopped
+        - 不确定 / Unknown
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤、实际及预期结果 / Steps, actual and expected result
+      description: 请说明是否切换了开发者选项、重启、强行停止、使用手机信息 V2 或其他 IMS 工具。
+    validations:
+      required: true
