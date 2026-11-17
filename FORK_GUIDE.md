@@ -1,6 +1,6 @@
 # 发布为 fork
 
-1. 在 GitHub 上 fork https://github.com/svenuks/ImsForPixel 。本次只准备本地源码和构建产物，没有创建或推送远程仓库。
+1. 在 GitHub 上 fork https://github.com/svenuks/ImsForPixel 。请使用你自己的 GitHub 仓库地址，保留本项目与上游的来源说明。
 2. 将源码 ZIP 解压到你的 fork 工作区，保留自己的 `.git`；或从提供的 Git bundle 克隆，它包含上游历史和本次改动提交。
 3. 设置你自己的 origin，检查差异、README、版本和签名，再推送一个分支。无需 force push。
 4. GitHub Actions 会编译调试 APK，并执行单元 / Compose 界面语义测试与 Lint。正式发布请使用你自己的签名。

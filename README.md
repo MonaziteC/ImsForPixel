@@ -1,61 +1,79 @@
 # Pixel IMS
 
-基于 [svenuks/ImsForPixel](https://github.com/svenuks/ImsForPixel) 的独立改进版本。无需 Root 或额外安装 Shizuku，通过手机本机无线 ADB 完成一次授权，应用自定义 IMS / NR 配置，并在关闭开发者选项后保留授权会话、检测并恢复丢失的配置。
+[English](README.en.md) · [下载 v1.2.0](https://github.com/MonaziteC/PixelIMS/releases/tag/v1.2.0) · [使用指南](docs/USAGE.md) · [构建说明](docs/BUILDING.md)
 
-## 1.2.0
+**为 Pixel 自定义 IMS 与 NR 配置，并在关闭开发者选项后持续守护。**
 
-- 官方 **Material 3 1.4.0** 组件；Android 12+ 跟随系统动态配色，明暗模式跟随系统。
-- “状态 / 配置”两页：精简守护状态、按用途分组的 SIM 设置、按需打开的连接授权面板。
-- 默认激活后自动守护。普通激活和守护共用完整的应用自定义配置定义，双 SIM 独立维护。
-- 状态页支持撤销配置、恢复运营商默认。现有授权有效时可直接撤销；无有效授权时引导连接无线调试。
-- 配对设备名称固定为 **Pixel IMS**，复用本地保存的配对密钥。
-- 移除“保持 SA”开关及 `ims.sa_disable_policy_int` 写入；旧选项不会进入新配置。
-- 区分“正在操作”和“正在守护”，不再把正常守护显示成一直加载。
+Pixel IMS 基于 [svenuks/ImsForPixel](https://github.com/svenuks/ImsForPixel)，保留手机本机无线 ADB 授权方式，无需 Root、电脑或额外安装 Shizuku。首次授权后，可关闭开发者选项，由独立守护进程检查并恢复丢失的配置。
 
-## 使用
+> 守护依赖仍然存活的授权会话。重启、强行停止或会话失效后，需要重新授权；它不是向系统写入永久配置。
 
-1. 安装后在“配置”页选择 SIM，设置 VoLTE、VoNR、Wi-Fi 通话、NR 和图标等选项。
-2. 点击“应用并守护”，按面板提示临时连接 Wi-Fi、开启无线调试并完成配对。可使用通知栏配对，也可展开手动端口 / 配对码输入。
-3. 返回应用并应用配置。显示“守护已就绪，可以关闭开发者选项”后关闭开发者选项总开关。
-4. 正常守护不需要持续的 ADB 连接。修改配置时先使用“修改配置”暂停守护；保存选择后再次应用。
-5. 状态页的“撤销配置并恢复默认”会停止守护、清除临时运营商覆盖；它不删除配对密钥。没有有效会话时需要重新授权。
+## 主要功能
 
-原来的 `/data/user/0/.../files` 配对记录不会自动改名。以后重新配对时可手动遗忘旧条目。
+| 功能 | 说明 |
+| --- | --- |
+| IMS 配置 | VoLTE、VoNR、Wi-Fi 通话、漫游 Wi-Fi 通话与补充业务等 |
+| NR 与图标 | 配置 5G NR（NSA / SA）可用性及 5GA / 5G+ 图标判定策略 |
+| 完整配置守护 | 守护全部由应用写入的自定义配置，而不仅是 NR 选项 |
+| 双 SIM | 分别保存两张 SIM 的设置，并独立维护启动时已启用的 SIM |
+| 关闭调试后运行 | 保留授权会话，独立进程监听配置变化，按需补写并回读确认 |
+| 撤销配置 | 在状态页停止守护并恢复运营商默认配置 |
+| Material 3 | 状态 / 配置两页，跟随系统明暗模式；Android 12+ 使用系统动态配色 |
 
-## 边界
+5G+ 图标和实际载波聚合由网络、基带与系统共同决定。应用调整配置可用性和图标策略，**不能强制建立 5G-Advanced 连接，也不保证始终显示 5G+**。
 
-- 守护依赖存活的 Instrumentation / UiAutomation 权限会话；重启、强行停止、守护进程或授权连接终止后不能保证自动恢复授权。
-- NR / NR Advanced 参数影响模式可用性和图标判定，不能强制物理载波聚合，也不能保证始终出现 5G+ 图标。
-- 守护不重置 IMS 或切换飞行模式；通话期间暂停写入。初次明确执行普通激活仍保留上游 IMS 重置流程。
-- 恢复默认使用 `overrideConfig(subId, null, false)`，会清除对应 SIM 的临时覆盖层，包括其他工具写入该层的值；不会清除系统专属持久覆盖。
-- 前台服务仍按系统要求提交有效通知。在用户要求的静默守护模式下，启动授权阶段仅撤销**本应用**的通知权限；系统“活动应用”列表仍可能显示服务。配对通知仅在用户主动配对时申请权限。
-- 网络用途是本机 `127.0.0.1` ADB 和局域网 mDNS 发现；不包含分析 SDK 或日志上传功能。
+## 下载与开始使用
 
-## 构建
+从 [Releases](https://github.com/MonaziteC/PixelIMS/releases) 下载 APK。当前版本为 [v1.2.0](https://github.com/MonaziteC/PixelIMS/releases/tag/v1.2.0)。
 
-JDK 17、Android SDK Platform 36，使用仓库提供的 Gradle wrapper：
+1. 在“配置”页选择 SIM，并设置所需功能。
+2. 点击“应用并守护”，临时连接 Wi-Fi、开启无线调试并完成配对。
+3. 返回应用并应用配置。等待出现“守护已就绪，可以关闭开发者选项”，再关闭开发者选项总开关。
+4. 后续无需保持无线 ADB 连接。状态页可查看守护状态、配置检查结果及已确认恢复次数。
+
+“激活后自动守护”默认启用。修改配置时先点击“修改配置”暂停守护，再重新应用。详情见 [使用指南](docs/USAGE.md)。
+
+## 恢复默认
+
+在状态页点击 **“撤销配置并恢复默认”**：
+
+- 有效守护会话仍在时，使用现有授权撤销配置，通常无需重新打开调试。
+- 没有有效会话时，应用会引导重新连接无线调试。
+- 撤销会停止守护，并清除对应 SIM 的临时运营商覆盖层；其他工具写入同一临时层的配置也可能被清除。
+- 不清除系统专属持久覆盖，不删除已保存的配置选择或 ADB 配对密钥。
+
+## 使用前了解
+
+- **守护不等于永久授权。** 界面退出或划掉最近任务与强行停止不同；守护进程、授权连接死亡或重启后，不能保证自行恢复权限。
+- **实际网络能力需要运营商支持。** IMS 注册、VoNR、Wi-Fi 通话和聚合能力仍取决于套餐、网络、基带与系统。
+- **不是持续重置网络。** 正常守护先检查、仅在配置不匹配时补写；通话期间暂停写入，并有限速与退避。首次明确执行普通激活保留上游 IMS 重置流程。
+- **没有常驻通知栏条目不代表没有前台服务。** 守护保留系统要求的前台服务；启动授权阶段仅关闭本应用的通知权限以隐藏通知栏展示。系统“活动应用”列表仍可能显示它。配对时可按需申请通知权限。
+- **范围有限的验证。** 当前用户在 Pixel / Android 17 上反馈正常；最低安装版本为 Android 10（API 29），这不代表已覆盖验证所有 Android 版本或其他厂商设备。
+
+常见问题见 [FAQ](docs/FAQ.md)。
+
+## 隐私
+
+应用的网络用途为本机 `127.0.0.1` ADB 连接和局域网 mDNS 发现。项目不包含分析 SDK、遥测或自动日志上传；配对密钥保存在应用私有目录。源码与 Release 附件不包含设备日志、ADB 私钥或发布签名私钥。
+
+## 开发与构建
+
+使用 JDK 17、Android SDK Platform 36：
 
 ```sh
 ./gradlew assembleRelease testDebugUnitTest lintRelease
 ```
 
-工具链：AGP 8.13.0、Gradle 8.13、Kotlin / Compose compiler 2.2.20。Material 3 1.4.0 由 Compose BOM 2026.03.00 管理。更新的 BOM 包含需要 AGP 9.1 / SDK 37 的基础库，当前选择保留兼容的工具链；Material 3 组件本身仍为检索时的最新稳定版。
+UI 使用官方 Material 3 1.4.0，当前构建通过 34 项 JVM / Compose 界面语义测试，Lint 为零错误。完整工具链、签名配置和验证边界见 [构建说明](docs/BUILDING.md) 与 [验证记录](docs/VALIDATION.md)。
 
-最低 Android API 29。Gradle 会下载依赖，首次构建需要网络。界面语义测试在 Robolectric 上运行；这不替代真实 Pixel 固件的长时间后台测试。
+## 反馈
 
-默认 release 使用本地开发签名，便于测试。正式发布可设置以下环境变量，私钥不应提交到仓库：
+请在 [Issues](https://github.com/MonaziteC/PixelIMS/issues) 中描述机型、Android 版本、复现步骤、当前守护状态及预期行为。发布截图或日志前，请自行遮盖手机号、设备标识、IP 和其他个人信息；不要上传配对私钥或签名密钥。
 
-```text
-PIXEL_IMS_KEYSTORE_FILE
-PIXEL_IMS_KEYSTORE_PASSWORD
-PIXEL_IMS_KEY_ALIAS
-PIXEL_IMS_KEY_PASSWORD
-```
+## 来源与许可
 
-提供的测试 APK 沿用前几版的开发签名；源码包不包含该私钥。使用你自己的发布签名后，无法直接覆盖不同签名的测试安装。
+- 基础项目：[svenuks/ImsForPixel](https://github.com/svenuks/ImsForPixel)。
+- NR / NR Advanced 参数参考：[ryfineZ/carrier-ims-for-pixel](https://github.com/ryfineZ/carrier-ims-for-pixel)，保留 Apache 2.0 许可与归属说明。
+- Material 3 与 Compose：Google / AndroidX 官方组件。
 
-## Fork 与来源
-
-参见 [FORK_GUIDE.md](FORK_GUIDE.md)、[第三方归属](THIRD_PARTY_NOTICES.md) 和 [架构说明](docs/ARCHITECTURE.md)。仓库保留原 Kotlin 命名空间和 application ID，以便覆盖升级现有测试版本。
-
-上游原 README 保存在 [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md)，其中的历史能力声明不代表本 fork 的验证范围。
+本项目为独立 fork，不代表原作者或 Google。新改动采用 MIT；改编部分及上游来源见 [LICENSE](LICENSE)、[第三方归属](THIRD_PARTY_NOTICES.md) 和保留的 [上游 README](docs/UPSTREAM_README.md)。
