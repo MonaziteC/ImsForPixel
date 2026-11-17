@@ -1,0 +1,49 @@
+name: Upload verified release assets
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing draft release tag
+        required: true
+        default: v1.2.0
+      apk_url:
+        description: HTTPS URL of the prepared APK (no credentials)
+        required: true
+      apk_sha256:
+        description: Exact SHA-256 of the approved APK
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: release-assets-${{ inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      APK_URL: ${{ inputs.apk_url }}
+      APK_SHA256: ${{ inputs.apk_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require an existing draft release
+        run: |
+          test "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = true
+          git switch -c release-source "$GITHUB_SHA"
+      - name: Verify APK and package source
+        run: python3 scripts/prepare-release.py
+      - name: Upload assets to draft
+        run: |
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA"
+          gh release upload "$RELEASE_TAG" publish/*.apk publish/*-source.zip publish/*-git.zip publish/SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber
+      - name: Download and verify uploaded assets
+        run: |
+          mkdir verify
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir verify
+          cd verify
+          sha256sum -c SHA256SUMS

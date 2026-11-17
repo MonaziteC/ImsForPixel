@@ -45,4 +45,8 @@ The published v1.2.0 APK retains the development signature used by the preceding
 
 ## Source provenance
 
-The original implementation changes are in commit `ddbdc524d5d8bbbf9ee4352628b583e24e057d53`. A later publication commit updates documentation only. The v1.2.0 APK was built from the same application code; publication documents do not change the binary.
+The original implementation changes are in commit `ddbdc524d5d8bbbf9ee4352628b583e24e057d53`. Later publication commits update documentation and CI only. The v1.2.0 APK was built from the same application code; publication documentation and automation do not change the binary.
+
+## Uploading an already tested APK
+
+The manually triggered `Upload verified release assets` workflow can attach a prepared APK to an existing draft release. Supply an HTTPS URL and the exact SHA-256. It checks the hash, packages the current source and Git history, uploads using the repository-scoped Actions token, and downloads the assets again to verify their checksums. It never executes the downloaded APK and does not publish the draft automatically. No signing key is required or uploaded.
