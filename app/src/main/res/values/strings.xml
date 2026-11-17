@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">IMS for Pixel</string>
+    <string name="app_name">Pixel IMS</string>
     <string name="app_subtitle">Rootless VoLTE/VoNR calling configuration</string>
 
     <!-- Notification Strings -->
@@ -84,4 +84,41 @@
     <string name="toggle_hide_advanced">Hide advanced settings</string>
     <string name="toggle_show_advanced">Show advanced settings</string>
     <string name="label_adb_port">Connection Port (ADB Port)</string>
+    <string name="toggle_nr_title">5G NR (NSA/SA)</string>
+    <string name="toggle_nr_desc">Allow NSA and SA. Off restores carrier policy after applying; aggregation depends on modem and network.</string>
+    <string name="toggle_nr_plus_title">5GA / 5G+ icon</string>
+    <string name="toggle_nr_plus_desc">Requires 5G NR. Use a 110 MHz NR threshold and China NR bands; the actual icon depends on Android. Tap Activate to apply.</string>
+    <string name="result_temporary">Last application: temporary configuration read-back passed.</string>
+    <string name="result_cleared">Temporary overrides cleared. Persistent overrides from other tools are not changed.</string>
+    <string name="result_failed">Configuration operation failed</string>
+    <string name="result_failed_details">Open the SIM panel for the error; do not assume the settings were applied.</string>
+    <string name="persistence_unavailable">Persistent saving is unavailable in this build: the target system restricts it to system apps. Apply and Restore use temporary configuration only.</string>
+    <string name="guard_title">Pixel IMS settings guardian</string>
+    <string name="guard_desc">Guardian is enabled by default. One-tap activation applies your settings and starts protection for active SIMs. Wait until ready, then turn developer options off. Stop before editing. Reboot or session loss requires authorization again.</string>
+    <string name="guard_idle">Waiting for activation and authorization</string>
+    <string name="guard_start">Activate and protect</string>
+    <string name="guard_stop">Stop guardian</string>
+    <string name="guard_starting">Starting guardian…</string>
+    <string name="guard_wait_off">Waiting for developer options and debugging to be turned off</string>
+    <string name="guard_matching">Guardian active · custom configuration matches</string>
+    <string name="guard_repairing">Restoring configuration and checking the result…</string>
+    <string name="guard_call">Guardian active · recovery paused during a call</string>
+    <string name="guard_sim_missing">Guardian paused for an unavailable target SIM</string>
+    <string name="guard_reauthorize">Permission session ended · authorize and start again</string>
+    <string name="guard_retry">Waiting before retrying configuration recovery</string>
+    <string name="guard_stopped">Guardian stopped; existing settings were not reverted</string>
+    <string name="guard_stopping">Stopping guardian… The app may close when authorization is released.</string>
+    <string name="guard_failed">Guardian could not start; reconnect and try again</string>
+    <string name="guard_unreadable">Guardian active · waiting for readable SIM configuration</string>
+    <string name="guard_pending">Guardian process is running · waiting for a status update</string>
+    <string name="guard_lost">Guardian ended · reconnect and start again</string>
+    <string name="guard_need_connection">Complete pairing and enter the wireless debugging connection port first.</string>
+    <string name="guard_already_active">A guardian session is already active.</string>
+    <string name="guard_launch_failed">Could not start guardian. Check the wireless debugging connection and try again.</string>
+    <string name="guard_debug_off">Developer options and both debugging switches are off</string>
+    <string name="guard_count">Confirmed configuration recoveries: %1$d</string>
+    <string name="guard_battery">Background battery settings</string>
+    <string name="guard_auto">Automatically protect after activation</string>
+    <string name="guard_sims">Protecting SIM: %1$s</string>
+    <string name="guard_notifications">Hide notifications in system settings</string>
 </resources>

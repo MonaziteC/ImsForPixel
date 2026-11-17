@@ -20,3 +20,12 @@ app/build/
 
 # macOS
 .DS_Store
+
+# Local signing and runtime artifacts
+.kotlin/
+keystore.properties
+*.pem
+*.key
+*.apk
+*.aab
+captures/

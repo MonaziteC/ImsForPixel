@@ -7,20 +7,42 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Instrumentation for adopting shell permissions to override carrier configs on Android 15/16 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Initial wireless-ADB authorization; subsequent writes use app-UID Binder. -->
     <instrumentation
         android:name="com.svenuks.imsforpixel.BrokerInstrumentation"
         android:targetPackage="com.svenuks.imsforpixel"/>
 
+    <instrumentation
+        android:name="com.svenuks.imsforpixel.GuardianInstrumentation"
+        android:targetPackage="com.svenuks.imsforpixel"
+        android:targetProcesses="com.svenuks.imsforpixel:keeper" />
+
     <application
         android:allowBackup="true"
+        android:fullBackupContent="@xml/diagnostic_backup_rules"
+        android:dataExtractionRules="@xml/diagnostic_extraction_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label="IMS for Pixel"
+        android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+        android:theme="@style/Theme.PixelIms"
         tools:targetApi="36">
+        <service
+            android:name=".GuardianService"
+            android:process=":keeper"
+            android:exported="false"
+            android:stopWithTask="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-started continuous monitoring and recovery of custom IMS carrier settings, while an explicitly authorized permission session remains active." />
+        </service>
+        <receiver android:name=".GuardianStopReceiver" android:process=":keeper" android:exported="false" />
         <activity
             android:name=".MainActivity"
+            android:launchMode="singleTop"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

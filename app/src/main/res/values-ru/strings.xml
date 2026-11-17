@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">IMS for Pixel</string>
+    <string name="app_name">Pixel IMS</string>
     <string name="app_subtitle">Настройка вызовов VoLTE/VoNR без Root</string>
 
     <!-- Notification Strings -->
@@ -84,4 +84,41 @@
     <string name="toggle_hide_advanced">Скрыть расширенные настройки</string>
     <string name="toggle_show_advanced">Показать расширенные настройки</string>
     <string name="label_adb_port">Порт подключения (ADB Port)</string>
+    <string name="toggle_nr_title">5G NR (NSA/SA)</string>
+    <string name="toggle_nr_desc">Разрешить NSA и SA. Выключение возвращает политику оператора после применения. Агрегация зависит от модема и сети.</string>
+    <string name="toggle_nr_plus_title">Значок 5GA / 5G+</string>
+    <string name="toggle_nr_plus_desc">Требуется 5G NR. Порог NR 110 МГц и диапазоны Китая; вид значка зависит от Android. Нажмите активацию.</string>
+    <string name="result_temporary">Последнее применение: временные настройки проверены.</string>
+    <string name="result_cleared">Временные настройки сброшены. Сохранённые другими инструментами настройки не изменены.</string>
+    <string name="result_failed">Ошибка применения настроек</string>
+    <string name="result_failed_details">Откройте панель SIM для просмотра ошибки. Настройки могли не примениться.</string>
+    <string name="persistence_unavailable">Постоянное сохранение отключено: система разрешает его только системным приложениям. Применение и сброс используют временные настройки.</string>
+    <string name="guard_title">Защита настроек Pixel IMS</string>
+    <string name="guard_desc">Защита включена по умолчанию. Активация применяет настройки и запускает защиту активных SIM. Дождитесь готовности и отключите режим разработчика. Перед изменением настроек остановите защиту. После перезагрузки или потери сеанса нужна повторная авторизация.</string>
+    <string name="guard_idle">Ожидание активации и авторизации</string>
+    <string name="guard_start">Активировать и защищать</string>
+    <string name="guard_stop">Остановить</string>
+    <string name="guard_starting">Запуск защиты…</string>
+    <string name="guard_wait_off">Ожидание отключения режима разработчика и отладки</string>
+    <string name="guard_matching">Защита работает · настройки применены</string>
+    <string name="guard_repairing">Восстановление и проверка параметров…</string>
+    <string name="guard_call">Защита работает · запись приостановлена на время звонка</string>
+    <string name="guard_sim_missing">Защита недоступной SIM приостановлена</string>
+    <string name="guard_reauthorize">Сеанс разрешений завершён · авторизуйтесь и запустите снова</string>
+    <string name="guard_retry">Ожидание повторной попытки восстановления</string>
+    <string name="guard_stopped">Защита остановлена; применённые параметры не отменены</string>
+    <string name="guard_stopping">Остановка защиты… При завершении авторизации приложение может закрыться.</string>
+    <string name="guard_failed">Не удалось запустить защиту. Подключитесь заново и повторите попытку.</string>
+    <string name="guard_unreadable">Защита работает · ожидание доступности настроек SIM</string>
+    <string name="guard_pending">Процесс защиты работает · ожидание обновления состояния</string>
+    <string name="guard_lost">Защита завершена · подключитесь и запустите снова</string>
+    <string name="guard_need_connection">Сначала выполните сопряжение и укажите порт беспроводной отладки.</string>
+    <string name="guard_already_active">Сеанс защиты уже работает.</string>
+    <string name="guard_launch_failed">Не удалось запустить защиту. Проверьте подключение беспроводной отладки.</string>
+    <string name="guard_debug_off">Режим разработчика, USB-отладка и беспроводная отладка отключены</string>
+    <string name="guard_count">Подтверждённых восстановлений: %1$d</string>
+    <string name="guard_battery">Фоновое использование батареи</string>
+    <string name="guard_auto">Автоматическая защита после активации</string>
+    <string name="guard_sims">Защита SIM: %1$s</string>
+    <string name="guard_notifications">Скрыть уведомления в настройках</string>
 </resources>

@@ -64,6 +64,7 @@ class BrokerInstrumentation : Instrumentation() {
         Log.d(TAG, "clearArg: $clearArg")
 
         Thread {
+            var completed = false
             try {
                 HiddenApiBypass.addHiddenApiExemptions("L")
                 Log.d(TAG, "Successfully applied HiddenApiBypass exemptions in instrumentation")
@@ -96,7 +97,7 @@ class BrokerInstrumentation : Instrumentation() {
                     uiAutomation.adoptShellPermissionIdentity()
                     Log.d(TAG, "Successfully adopted shell permission identity via UiAutomation")
                 } else {
-                    Log.e(TAG, "UiAutomation is null, cannot adopt shell permission identity")
+                    error("UiAutomation is null, cannot adopt shell permission identity")
                 }
                 
                 try {
@@ -104,6 +105,7 @@ class BrokerInstrumentation : Instrumentation() {
                         queryStatusOnly()
                     } else {
                         patchAllSimsAndPoll(arguments)
+                        completed = true
                         showImsStatusNotification(!clearArg)
                     }
                 } finally {
@@ -119,7 +121,17 @@ class BrokerInstrumentation : Instrumentation() {
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to run instrumentation patch", e)
             } finally {
-                finish(0, Bundle())
+                val uiId = arguments?.getString("ui_request_id")
+                if (uiId != null && GuardianStore.validId(uiId)) {
+                    val failed = !completed || (0..1).any { slot ->
+                        runCatching { java.io.File(context.filesDir, "config_result_$slot.txt").readText().startsWith("ERROR:") }.getOrDefault(false)
+                    }
+                    val state = if (failed) (if (clearArg) "restore_failed" else "failed") else if (clearArg) "restored" else "applied"
+                    runCatching { GuardianStore.write(context, org.json.JSONObject().put("guardian_id", uiId)
+                        .put("state", state).put("phase", state).put("boot", GuardianStore.boot(context))
+                        .put("elapsed", android.os.SystemClock.elapsedRealtime())) }
+                }
+                finish(0, Bundle().apply { if (uiId != null) putString("ui_action", "status") })
             }
         }.start()
     }
@@ -133,6 +145,9 @@ class BrokerInstrumentation : Instrumentation() {
         }
     }
 
+    // Called only inside the adopted UiAutomation shell identity, which supplies
+    // READ_PHONE_STATE independently of this app's manifest permissions.
+    @android.annotation.SuppressLint("MissingPermission")
     private fun getActiveSimTargets(subManager: SubscriptionManager): List<Pair<Int, Int>> {
         val targets = mutableListOf<Pair<Int, Int>>() // List of (slotIndex, subId)
         
@@ -248,13 +263,23 @@ class BrokerInstrumentation : Instrumentation() {
         }
     }
 
+    @android.annotation.SuppressLint("MissingPermission")
     private fun patchAllSimsAndPoll(arguments: Bundle?) {
         val sharedPrefs = context.getSharedPreferences("volte_settings", Context.MODE_PRIVATE)
         val subManager = context.getSystemService(SubscriptionManager::class.java) ?: return
         val carrierConfigManager = context.getSystemService(CarrierConfigManager::class.java) ?: return
         val telephonyManager = context.getSystemService(TelephonyManager::class.java) ?: return
 
+        val writer = CarrierOverrideWriter { subId, values, persistent ->
+            val method = carrierConfigManager.javaClass.getMethod(
+                "overrideConfig", Int::class.javaPrimitiveType,
+                PersistableBundle::class.java, Boolean::class.javaPrimitiveType
+            )
+            method.isAccessible = true
+            method.invoke(carrierConfigManager, subId, values, persistent)
+        }
         val simTargets = getActiveSimTargets(subManager)
+        for (slot in 0..1) java.io.File(context.filesDir, "config_result_$slot.txt").delete()
         Log.d(TAG, "Processing ${simTargets.size} active SIM targets")
 
         val hasClearArg = arguments?.containsKey("clear") == true
@@ -270,96 +295,45 @@ class BrokerInstrumentation : Instrumentation() {
                 sharedPrefs.getBoolean("clear_slot_$slotIndex", false)
             }
 
+            val appliedFile = java.io.File(context.filesDir, "config_applied_$slotIndex.txt")
+            val resultFile = java.io.File(context.filesDir, "config_result_$slotIndex.txt")
+            appliedFile.writeText("false")
             if (clear) {
-                Log.d(TAG, "Clearing config for slot $slotIndex (subId $subId)")
                 try {
-                    val appliedFile = java.io.File(context.filesDir, "config_applied_$slotIndex.txt")
-                    appliedFile.writeText("false")
-                } catch (e: Exception) {}
-                try {
-                    val overrideMethod = carrierConfigManager.javaClass.declaredMethods.firstOrNull {
-                        it.name == "overrideConfig" && it.parameterTypes.size == 3
-                    } ?: carrierConfigManager.javaClass.declaredMethods.firstOrNull {
-                        it.name == "overrideConfig"
-                    }
-                    if (overrideMethod != null) {
-                        overrideMethod.isAccessible = true
-                        if (overrideMethod.parameterTypes.size == 3) {
-                            overrideMethod.invoke(carrierConfigManager, subId, null, false)
-                        } else {
-                            overrideMethod.invoke(carrierConfigManager, subId, null)
-                        }
-                    }
+                    writer.replace(subId, null)
+                    resultFile.writeText(context.getString(R.string.result_cleared))
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to clear carrier config reflectively for subId $subId", e)
+                    resultFile.writeText("ERROR: " + (e.cause?.message ?: e.message))
+                    Log.e(TAG, "Failed to clear runtime config for $subId", e)
+                    continue
                 }
             } else {
-                val volte = sharedPrefs.getBoolean("volte_slot_$slotIndex", true)
-                val vonr = sharedPrefs.getBoolean("vonr_slot_$slotIndex", true)
-                val vowifi = sharedPrefs.getBoolean("vowifi_slot_$slotIndex", true)
-                val crossSim = sharedPrefs.getBoolean("cross_sim_slot_$slotIndex", false)
-                val wfcRoaming = sharedPrefs.getBoolean("wfc_roaming_slot_$slotIndex", true)
-                val ssUt = sharedPrefs.getBoolean("ss_ut_slot_$slotIndex", true)
-                val showIms = sharedPrefs.getBoolean("show_ims_slot_$slotIndex", true)
-                val allowApn = sharedPrefs.getBoolean("allow_apn_slot_$slotIndex", false)
-                val bundle = PersistableBundle()
+                val bundle = ImsCarrierConfig.build(ImsCarrierConfig.snapshot(sharedPrefs, slotIndex))
+                Log.d(TAG, "Applying custom IMS config for slot $slotIndex (subId $subId)")
 
-                // VoLTE enabling & provisioning & roaming overrides
-                bundle.putBoolean("carrier_volte_available_bool", volte)
-                bundle.putBoolean("carrier_volte_roaming_available_bool", volte)
-                bundle.putBoolean("carrier_default_volte_roaming_enabled_bool", volte)
-                bundle.putBoolean("enhanced_4g_lte_on_by_default_bool", volte)
-                bundle.putBoolean("hide_enhanced_4g_lte_bool", !volte)
-                bundle.putBoolean("editable_enhanced_4g_lte_bool", volte)
-                bundle.putBoolean("carrier_volte_provisioned_bool", volte)
-                bundle.putBoolean("carrier_volte_provisioning_required_bool", false)
-
-                // Carrier Aggregation / LTE+ display threshold override
-                bundle.putInt("lte_plus_threshold_bandwidth_khz_int", 0)
-
-                // VoNR (5G Calling) overrides
-                bundle.putBoolean("vonr_enabled_bool", vonr)
-                bundle.putBoolean("vonr_setting_visibility_bool", vonr)
-
-                // VoWiFi (Wi-Fi Calling) & roaming overrides
-                bundle.putBoolean("carrier_wfc_ims_available_bool", vowifi)
-                bundle.putBoolean("carrier_wfc_ims_roaming_available_bool", vowifi)
-                bundle.putBoolean("carrier_default_wfc_ims_enabled_bool", vowifi)
-                bundle.putBoolean("carrier_wfc_ims_provisioned_bool", vowifi)
-                bundle.putBoolean("editable_wfc_mode_bool", vowifi)
-                bundle.putBoolean("editable_wfc_roaming_mode_bool", vowifi)
-                bundle.putBoolean("carrier_default_wfc_ims_roaming_enabled_bool", wfcRoaming)
-
-                // Other settings
-                bundle.putBoolean("carrier_cross_sim_ims_available_bool", crossSim)
-                bundle.putBoolean("enable_cross_sim_calling_on_opportunistic_data_bool", crossSim)
-                bundle.putBoolean("carrier_supports_ss_over_ut_bool", ssUt)
-                bundle.putBoolean("show_ims_registration_status_bool", showIms)
-                bundle.putBoolean("allow_adding_apns_bool", allowApn)
-
-                Log.d(TAG, "Applying config for slot $slotIndex (subId $subId): VoLTE=$volte, VoNR=$vonr, VoWiFi=$vowifi")
-                
                 try {
-                    val overrideMethod = carrierConfigManager.javaClass.declaredMethods.firstOrNull {
-                        it.name == "overrideConfig" && it.parameterTypes.size == 3
-                    } ?: carrierConfigManager.javaClass.declaredMethods.firstOrNull {
-                        it.name == "overrideConfig"
-                    }
-                    if (overrideMethod != null) {
-                        overrideMethod.isAccessible = true
-                        if (overrideMethod.parameterTypes.size == 3) {
-                            overrideMethod.invoke(carrierConfigManager, subId, bundle, false)
-                        } else {
-                            overrideMethod.invoke(carrierConfigManager, subId, bundle)
+                    writer.replace(subId, bundle)
+                    // The loader posts updates to its handler. Wait for effective values,
+                    // rather than treating reflection returning as proof of application.
+                    var verified = false
+                    for (attempt in 0 until 20) {
+                        val actual = carrierConfigManager.getConfigForSubId(subId)
+                        if (CarrierOverrideWriter.matches(bundle, actual)) {
+                            verified = true
+                            break
                         }
-                        Log.d(TAG, "Applied config reflectively for subId $subId")
-                        try {
-                            val appliedFile = java.io.File(context.filesDir, "config_applied_$slotIndex.txt")
-                            appliedFile.writeText("true")
-                        } catch (e: Exception) {}
+                        Thread.sleep(250)
                     }
+                    check(verified) { "Carrier config read-back timed out" }
+                    appliedFile.writeText("true")
+                    resultFile.writeText(context.getString(
+                        R.string.result_temporary
+                    ))
+                    Log.d(TAG, "Applied and read back config for subId $subId; persistent=false")
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to apply config reflectively for subId $subId", e)
+                    resultFile.writeText("ERROR: " + (e.cause?.message ?: e.message))
+                    Log.e(TAG, "Failed to apply/read back carrier config for $subId", e)
+                    continue
                 }
             }
 
@@ -433,12 +407,15 @@ class BrokerInstrumentation : Instrumentation() {
         val slot0 = try { java.io.File(context.filesDir, "ims_status_0.txt").readText().trim().toBoolean() } catch (e: Exception) { false }
         val slot1 = try { java.io.File(context.filesDir, "ims_status_1.txt").readText().trim().toBoolean() } catch (e: Exception) { false }
         val anyRegistered = slot0 || slot1
-        val title = if (isActivate) {
+        val configFailed = (0..1).any { slot ->
+            runCatching { java.io.File(context.filesDir, "config_result_$slot.txt").readText().startsWith("ERROR:") }.getOrDefault(false)
+        }
+        val title = if (configFailed) context.getString(R.string.result_failed) else if (isActivate) {
             if (anyRegistered) context.getString(R.string.notification_title_volte_success) else context.getString(R.string.notification_title_volte_done)
         } else {
             context.getString(R.string.notification_title_config_restored)
         }
-        val body = if (isActivate) {
+        val body = if (configFailed) context.getString(R.string.result_failed_details) else if (isActivate) {
             buildString {
                 if (slot0) append(context.getString(R.string.notification_sim1_registered)) else append(context.getString(R.string.notification_sim1_not_registered))
                 if (slot1) append(context.getString(R.string.notification_sim2_registered)) else append(context.getString(R.string.notification_sim2_not_registered))

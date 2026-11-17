@@ -1,167 +1,61 @@
-# IMS for Pixel
+# Pixel IMS
 
-> Rootless VoLTE, VoNR (5G Voice), Wi-Fi Calling, and Carrier Aggregation enabler for Google Pixel devices.
+基于 [svenuks/ImsForPixel](https://github.com/svenuks/ImsForPixel) 的独立改进版本。无需 Root 或额外安装 Shizuku，通过手机本机无线 ADB 完成一次授权，应用自定义 IMS / NR 配置，并在关闭开发者选项后保留授权会话、检测并恢复丢失的配置。
 
-[![Platform](https://img.shields.io/badge/Platform-Android%2010--17-brightgreen.svg)](https://developer.android.com)
-[![API](https://img.shields.io/badge/API-28%2B-blue.svg)](https://developer.android.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/svenuks/ImsForPixel?color=blue)](https://github.com/svenuks/ImsForPixel/releases)
+## 1.2.0
 
----
+- 官方 **Material 3 1.4.0** 组件；Android 12+ 跟随系统动态配色，明暗模式跟随系统。
+- “状态 / 配置”两页：精简守护状态、按用途分组的 SIM 设置、按需打开的连接授权面板。
+- 默认激活后自动守护。普通激活和守护共用完整的应用自定义配置定义，双 SIM 独立维护。
+- 状态页支持撤销配置、恢复运营商默认。现有授权有效时可直接撤销；无有效授权时引导连接无线调试。
+- 配对设备名称固定为 **Pixel IMS**，复用本地保存的配对密钥。
+- 移除“保持 SA”开关及 `ims.sa_disable_policy_int` 写入；旧选项不会进入新配置。
+- 区分“正在操作”和“正在守护”，不再把正常守护显示成一直加载。
 
-## Overview
+## 使用
 
-**IMS for Pixel** is a standalone, rootless utility engineered to enable **VoLTE**, **VoNR (5G Voice Calling)**, **VoWiFi (Wi-Fi Calling)**, and **Carrier Aggregation (LTE+)** on Google Pixel devices. It bypasses regional carrier bundle restrictions—even on **Android 17**, where modern operating system security heavily limits third-party telephony access.
+1. 安装后在“配置”页选择 SIM，设置 VoLTE、VoNR、Wi-Fi 通话、NR 和图标等选项。
+2. 点击“应用并守护”，按面板提示临时连接 Wi-Fi、开启无线调试并完成配对。可使用通知栏配对，也可展开手动端口 / 配对码输入。
+3. 返回应用并应用配置。显示“守护已就绪，可以关闭开发者选项”后关闭开发者选项总开关。
+4. 正常守护不需要持续的 ADB 连接。修改配置时先使用“修改配置”暂停守护；保存选择后再次应用。
+5. 状态页的“撤销配置并恢复默认”会停止守护、清除临时运营商覆盖；它不删除配对密钥。没有有效会话时需要重新授权。
 
-Unlike traditional workarounds that depend on root access, Magisk modules, PC tethering, or external privilege managers, **IMS for Pixel is 100% self-contained**. It packages an embedded pure-Kotlin ADB client with Android's native instrumentation framework, allowing you to unlock your device's full cellular capabilities directly on the phone.
+原来的 `/data/user/0/.../files` 配对记录不会自动改名。以后重新配对时可手动遗忘旧条目。
 
----
+## 边界
 
-## 🏆 Key Advantages & Strengths
+- 守护依赖存活的 Instrumentation / UiAutomation 权限会话；重启、强行停止、守护进程或授权连接终止后不能保证自动恢复授权。
+- NR / NR Advanced 参数影响模式可用性和图标判定，不能强制物理载波聚合，也不能保证始终出现 5G+ 图标。
+- 守护不重置 IMS 或切换飞行模式；通话期间暂停写入。初次明确执行普通激活仍保留上游 IMS 重置流程。
+- 恢复默认使用 `overrideConfig(subId, null, false)`，会清除对应 SIM 的临时覆盖层，包括其他工具写入该层的值；不会清除系统专属持久覆盖。
+- 前台服务仍按系统要求提交有效通知。在用户要求的静默守护模式下，启动授权阶段仅撤销**本应用**的通知权限；系统“活动应用”列表仍可能显示服务。配对通知仅在用户主动配对时申请权限。
+- 网络用途是本机 `127.0.0.1` ADB 和局域网 mDNS 发现；不包含分析 SDK 或日志上传功能。
 
-### Why IMS for Pixel?
+## 构建
 
-Most existing solutions in the Android community suffer from severe operational friction: they either require unlocking the bootloader and rooting via Magisk/KernelSU, require connecting to a desktop computer with an ADB cable after every reboot, or require installing and maintaining third-party privilege services like Shizuku.
+JDK 17、Android SDK Platform 36，使用仓库提供的 Gradle wrapper：
 
-*IMS for Pixel* combines the best attributes into a unified, zero-dependency experience:
-
-| Feature / Advantage | Magisk / Root Modules | Shizuku-based Tools | IMS for Pixel |
-|---|---|---|---|
-| **Root Required** | ⚠️ Yes (Breaks SafetyNet/Play Integrity) | ❌ No | ❌ **No Root Required** |
-| **Requires Shizuku App** | ❌ No | ⚠️ Yes (External dependency) | ❌ **Completely Standalone** |
-| **Requires PC / Cable** | ⚠️ Often during initial setup | ⚠️ Often needed to start Shizuku | ❌ **Zero Cables / Zero PC** |
-| **Self-Contained Single APK** | ❌ No | ❌ No | ✅ **All-in-One APK** |
-| **Modern Android 15, 16, 17** | ⚠️ Kernel/Module breaks on updates | ⚠️ Subject to API restrictions | ✅ **Tested up to Android 17** |
-| **Dual SIM & eSIM Support** | ⚠️ Varies | ⚠️ Often physical slot only | ✅ **Full Physical + eSIM Mapping** |
-| **Real IMS Status Feedback** | ❌ Blind reboot check | ⚠️ In-app only | ✅ **System Notification Verification** |
-| **Carrier Aggregation (LTE+)** | ⚠️ Custom XML editing | ❌ Not enabled by default | ✅ **Enabled by Default** |
-| **Reversibility** | ⚠️ Risk of bootloop/partition write | ⚠️ Requires manual uninstallation | ✅ **1-Tap Instant In-Memory Revert** |
-
-### Core Architectural Strengths
-
-1. **Fully Self-Contained Architecture:**
-   The application embeds a lightweight, local-loopback ADB implementation ([Kadb](https://github.com/flyfishxu/Kadb)). It pairs with Android's built-in Wireless Debugging service directly on device without requiring any external app or daemon to be running in the background.
-2. **Ephemeral & Safe (Non-Destructive):**
-   Configuration changes are injected directly into system memory using Android's official `CarrierConfigManager.overrideConfig(subId, bundle, false)`. It never modifies `/system`, `/vendor`, or device partitions. If you ever want to revert, a single tap on **Restore Defaults** restores carrier stock behavior immediately.
-3. **True Dual SIM & eSIM Multi-Subscriber Engine:**
-   Modern Pixels utilize flexible multi-SIM and eSIM configurations. *IMS for Pixel* independently inspects and maps active subscription IDs (`subId`), allowing separate VoLTE, VoWiFi, and roaming preferences for Slot 1 and Slot 2.
-4. **Live Verification & Notification Reporting:**
-   Instead of leaving users guessing whether their IMS registration succeeded, the built-in runner queries modem registration states in real-time and pushes an official Android system notification reporting real per-slot registration status.
-5. **Private & Auditable:**
-   Every socket connection is strictly bound to `127.0.0.1` (localhost). There are zero analytics libraries, zero tracking SDKs, and zero outbound network calls.
-
----
-
-## ⚡ Feature Matrix
-
-- ✅ **VoLTE (Voice over LTE):** Crystal-clear HD voice calls over 4G LTE without dropping to 2G/3G.
-- ✅ **VoNR (5G Voice):** Standalone 5G voice calling support on compatible 5G SA networks.
-- ✅ **Wi-Fi Calling (VoWiFi):** Make and receive carrier calls over Wi-Fi when cellular reception is weak.
-- ✅ **VoWiFi Roaming:** Keep Wi-Fi Calling enabled even when traveling internationally or roaming outside your home network.
-- ✅ **Carrier Aggregation (LTE+ / 4G+):** Automatically lowers the bandwidth threshold (`lte_plus_threshold_bandwidth_khz_int = 0`), displaying the `LTE+`/`4G+` indicator and aggregating multi-carrier frequencies whenever supported by local base stations.
-- ✅ **Supplementary Services (UT):** Enables carrier call forwarding, call waiting, and call barring configurations over IMS.
-- ✅ **Dual SIM & eSIM:** Independent toggles and diagnostic badges for both active subscriptions.
-- ✅ **Live Status Monitoring:** Real-time polling reflects active modem IMS registration states.
-- ✅ **One-Tap Restore:** Clears all runtime overrides and returns immediately to factory carrier bundles.
-
----
-
-## 🚀 What's New in v1.1.0
-
-- **Native Multi-Language Support (i18n):** Full localization in English (default), Russian (ru), and Simplified Chinese (zh-CN). The app dynamically detects and matches your device's system language without manual selection.
-- **Default Carrier Aggregation (LTE+):** Built-in threshold bypass unlocks status bar `LTE+`/`4G+` indicators without adding unnecessary UI complexity.
-- **Optimized APK Footprint:** Trimmed out unused bloated vector libraries, reducing the package size by nearly 50% (~23MB) with zero risk to reflection stability.
-- **Enhanced eSIM Resolution:** Improved subscription handling on Google Tensor hardware.
-
----
-
-## 🛠️ How It Works
-
-```
-[IMS for Pixel UI] ──(127.0.0.1 ADB)──► [BrokerInstrumentation]
-                                               │ adoptShellPermissionIdentity()
-                                               ▼
-                                 [CarrierConfigManager.overrideConfig]
-                                               │
-                                 [TelephonyManager.resetIms]
-                                               │
-                                 [Poll Status & Post Notification]
+```sh
+./gradlew assembleRelease testDebugUnitTest lintRelease
 ```
 
-1. **Local Pairing:** The app auto-discovers the local Wireless Debugging port via mDNS (`_adb-tls-pairing._tcp`). You enter the 6-digit pairing code from Developer Options, establishing an authorized loopback ADB session over `127.0.0.1`.
-2. **Privileged Invocation:** The app triggers its internal `BrokerInstrumentation` test runner using `am instrument`. Under the standard Android instrumentation framework, this process temporarily adopts shell permissions (`MODIFY_PHONE_STATE`).
-3. **Carrier Bundle Override:** It applies in-memory overrides for your active subscription IDs using `CarrierConfigManager.overrideConfig`.
-4. **IMS Re-Attachment:** The telephony stack restarts IMS signaling per active SIM. The tool polls modem registration status and delivers instant confirmation via the notification shade.
+工具链：AGP 8.13.0、Gradle 8.13、Kotlin / Compose compiler 2.2.20。Material 3 1.4.0 由 Compose BOM 2026.03.00 管理。更新的 BOM 包含需要 AGP 9.1 / SDK 37 的基础库，当前选择保留兼容的工具链；Material 3 组件本身仍为检索时的最新稳定版。
 
----
+最低 Android API 29。Gradle 会下载依赖，首次构建需要网络。界面语义测试在 Robolectric 上运行；这不替代真实 Pixel 固件的长时间后台测试。
 
-## 📋 Compatibility & Requirements
+默认 release 使用本地开发签名，便于测试。正式发布可设置以下环境变量，私钥不应提交到仓库：
 
-| Requirement | Details |
-|---|---|
-| **Supported OS** | Android 10, 11, 12, 13, 14, 15, 16, **Android 17** ✅ |
-| **Devices** | Google Pixel 3 through Pixel 9 / 9 Pro / Fold series (and compatible AOSP devices) |
-| **Network** | Connected to Wi-Fi (required by Android OS for Wireless Debugging) |
-| **Developer Options** | Wireless Debugging enabled |
-| **Root / Magisk / Shizuku** | ❌ **Not required** |
-
----
-
-## 📖 Quick Start
-
-### 1. Enable Wireless Debugging
-1. Open **Settings → About phone** and tap **Build number** 7 times to enable Developer Options.
-2. Navigate to **Settings → System → Developer options**.
-3. Turn **Wireless debugging** ON.
-
-### 2. Install the Application
-Download the latest `ImsForPixel-v1.1.0.apk` from [GitHub Releases](https://github.com/svenuks/ImsForPixel/releases) and install it on your device.
-
-### 3. Pair & Activate
-1. Launch **IMS for Pixel**.
-2. Tap **Go to Wireless Debugging**, tap **Pair device with pairing code**.
-3. In the notification shade prompt, tap **Send Pairing Code** and enter the 6-digit code.
-4. Customize toggles for SIM 1 and SIM 2 (VoLTE, VoWiFi, VoNR, Roaming).
-5. Tap **One-Tap Activate**.
-6. Within a few seconds, a system notification will appear confirming that IMS is registered!
-
----
-
-## 💻 Building from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/svenuks/ImsForPixel.git
-cd ImsForPixel
-
-# Compile Release APK (JDK 17 required)
-./gradlew assembleRelease
+```text
+PIXEL_IMS_KEYSTORE_FILE
+PIXEL_IMS_KEYSTORE_PASSWORD
+PIXEL_IMS_KEY_ALIAS
+PIXEL_IMS_KEY_PASSWORD
 ```
-The compiled APK will be generated at `app/build/outputs/apk/release/app-release.apk`.
 
----
+提供的测试 APK 沿用前几版的开发签名；源码包不包含该私钥。使用你自己的发布签名后，无法直接覆盖不同签名的测试安装。
 
-## 🔒 Security & Privacy
+## Fork 与来源
 
-- **Zero Outbound Traffic:** No telemetry, tracking, or crash analytics.
-- **Local Loopback Only:** All communications target `127.0.0.1`. No open network ports.
-- **Auditable & Open:** The entire logic is transparently implemented in clean Kotlin source code.
+参见 [FORK_GUIDE.md](FORK_GUIDE.md)、[第三方归属](THIRD_PARTY_NOTICES.md) 和 [架构说明](docs/ARCHITECTURE.md)。仓库保留原 Kotlin 命名空间和 application ID，以便覆盖升级现有测试版本。
 
----
-
-## ❓ FAQ
-
-**Q: Does it survive a device reboot?**  
-A: Because `CarrierConfigManager.overrideConfig` is an in-memory modification designed by Android, overrides reset when the phone reboots. Simply open the app and tap **One-Tap Activate** once after rebooting.
-
-**Q: Can this harm my device or void my warranty?**  
-A: No. No system files or partitions are touched. You can tap **Restore Defaults** at any time to immediately revert to factory carrier configurations.
-
-**Q: Does it support physical SIM + eSIM dual standby?**  
-A: Yes. Both slots are detected and managed independently based on active subscriber IDs.
-
----
-
-## 📄 License
-
-This project is open-source software licensed under the [MIT License](LICENSE).
+上游原 README 保存在 [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md)，其中的历史能力声明不代表本 fork 的验证范围。

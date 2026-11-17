@@ -1,0 +1,4 @@
+NR configuration adapted from https://github.com/ryfineZ/carrier-ims-for-pixel
+app/src/main/java/io/github/vvb2060/ims/privileged/ImsModifier.kt
+Apache License 2.0. Modified to use svenuks/ImsForPixel local ADB instrumentation,
+with per-slot preferences and optional NR / NR Advanced icon overrides.
