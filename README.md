@@ -68,7 +68,9 @@ UI 使用官方 Material 3 1.4.0，当前构建通过 34 项 JVM / Compose 界�
 
 ## 反馈
 
-请在 [Issues](https://github.com/MonaziteC/ImsForPixel/issues) 中描述机型、Android 版本、复现步骤、当前守护状态及预期行为。发布截图或日志前，请自行遮盖手机号、设备标识、IP 和其他个人信息；不要上传配对私钥或签名密钥。
+已提供[问题反馈模板](.github/ISSUE_TEMPLATE/bug_report.yml)。GitHub fork 的 Issues 默认关闭；维护者可在 Settings → General → Features 中开启后使用模板接收反馈。
+
+反馈时请描述机型、Android 版本、复现步骤、当前守护状态及预期行为。发布截图或日志前，请自行遮盖手机号、设备标识、IP 和其他个人信息；不要上传配对私钥或签名密钥。
 
 ## 来源与许可
 
