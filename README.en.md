@@ -1,6 +1,6 @@
 # Pixel IMS
 
-[简体中文](README.md) · [Download v1.2.0](https://github.com/MonaziteC/ImsForPixel/releases/tag/v1.2.0)
+[简体中文](README.md) · [Download v1.2.1](https://github.com/MonaziteC/ImsForPixel/releases/tag/v1.2.1)
 
 **Customize IMS and NR carrier settings on Pixel, with a guardian that can keep running after developer options are turned off.**
 
@@ -41,7 +41,7 @@ JDK 21 and Android SDK Platform 36 (Android bytecode target remains 17):
 
 See [build and signing instructions](docs/BUILDING.md), [architecture](docs/ARCHITECTURE.md), [validation](docs/VALIDATION.md) and [fork guide](FORK_GUIDE.md). The minimum installation API is 29; this is not a claim of device testing across every supported API. The current user has reported working behavior on Pixel / Android 17.
 
-The 1.2.1-rc1 test build reduces APK size from 30.19 MB to 6.75 MB. See the [size cleanup record](docs/SIZE_OPTIMIZATION.md) for measurements and the remaining device regression checks.
+Version 1.2.1 reduces APK size from 30.19 MB to approximately 6.75 MB. The user confirmed that the optimized RC works on the target device; this does not establish compatibility across every device or firmware. See the [size cleanup record](docs/SIZE_OPTIMIZATION.md).
 
 ## Privacy and attribution
 

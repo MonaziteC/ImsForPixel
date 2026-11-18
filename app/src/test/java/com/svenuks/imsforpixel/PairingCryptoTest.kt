@@ -7,19 +7,47 @@ import com.flyfish233.crypto.spake2.Spake2Context
 import com.flyfish233.crypto.spake2.Spake2Role
 import okio.Path.Companion.toPath
 import org.junit.After
+import org.junit.Before
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.security.Provider
+import java.security.Security
 import java.security.cert.CertificateFactory
 
-/** Plain JVM crypto tests, without Robolectric's substituted security providers.
+/** Plain JVM crypto tests with an explicitly selected host RSA provider.
  * Real Android pairing and the minified APK remain device checks. */
 class PairingCryptoTest {
     @get:Rule val temp = TemporaryFolder()
-    @After fun resetTestIdentity() { runCatching { KadbCert.clear() } }
+    private var hostRsaProvider: Provider? = null
+    private var originalRsaPosition = 0
+
+    @Before fun selectHostRsaProvider() {
+        // Robolectric can install Conscrypt globally in the same test JVM.
+        // Its RSA key representation differs from the host's CRT representation.
+        // Pin the host provider for this JVM-only test, then restore its position.
+        val providers = Security.getProviders()
+        val index = providers.indexOfFirst { it.name == "SunRsaSign" }
+        check(index >= 0) { "These JVM tests require the OpenJDK RSA provider" }
+        hostRsaProvider = providers[index]
+        originalRsaPosition = index + 1
+        Security.removeProvider(providers[index].name)
+        Security.insertProviderAt(providers[index], 1)
+    }
+
+    @After fun resetTestIdentityAndProviders() {
+        try {
+            KadbCert.clear()
+        } finally {
+            hostRsaProvider?.let {
+                Security.removeProvider(it.name)
+                Security.insertProviderAt(it, originalRsaPosition)
+            }
+        }
+    }
 
     @Test fun persistedAdbIdentityIsReusedAndItsCertificateVerifies() {
         val key = File(temp.root, "test-identity.pem")

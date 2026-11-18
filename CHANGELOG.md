@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1
+
+- Promote the optimized build after the user's target-device functionality check. Phone-side logic matches 1.2.1-rc1; the version is now 1.2.1 (versionCode 12).
+- Reduce the universal APK from approximately 30.19 MB to 6.75 MB with R8/resource shrinking and removal of obsolete code and dependencies.
+- Keep Material 3, system colors, wireless pairing, full configuration protection and restore defaults.
+- Isolate the JVM pairing-crypto test's host RSA provider from Robolectric's global provider ordering; restore the original provider position afterward.
+
 ## 1.2.1-rc1 (size optimization test build)
 
 - Enable R8 and resource shrinking for release APKs; preserve shell entry names, hidden-API helpers and dynamically loaded crypto providers.

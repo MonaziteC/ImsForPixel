@@ -1,6 +1,6 @@
 # APK size cleanup: 1.2.1-rc1
 
-This is an optimized test build. The public 1.2.0 release remains the stable baseline until physical-device regression checks are complete.
+These measurements describe the optimized RC. The user subsequently reported normal functionality on the target phone and approved publication as 1.2.1. The final version changes version metadata and JVM test isolation; it retains the tested phone-side implementation.
 
 ## Measured APKs
 
@@ -34,6 +34,6 @@ The release build, 37 JVM/Compose tests and release Lint passed. APK signature a
 
 Run the commands in [BUILDING.md](BUILDING.md). The APK checker verifies actual DEX class/method tables for app components, instrumentation entry names, HiddenApiBypass and representative dynamically loaded crypto providers, and enforces the previous 1.1.7 APK size as a budget. CI retains the R8 mapping files.
 
-Pairing-crypto smoke tests exercise persistent RSA key reuse, self-signed certificate verification with host and BC providers, and SPAKE2 agreement/rejection. These JVM tests and static APK checks do **not** execute the optimized APK on a phone. Before promoting this RC, check new pairing, reuse of existing pairing, activation, retained configuration recovery with developer options off, stopping the guardian and restoring defaults on the target Pixel.
+Pairing-crypto smoke tests exercise persistent RSA key reuse, self-signed certificate verification with host and BC providers, and SPAKE2 agreement/rejection. The host RSA provider is explicitly selected and its original position restored so Robolectric's global security-provider ordering does not change this JVM-only test. These tests and static APK checks do **not** execute the optimized APK on a phone. The user's device confirmation is separate evidence; it is not a claim that every pairing, call, recovery and restore path has been exhaustively tested on every firmware.
 
 The test APK uses the same development signing certificate as 1.2.0, so it can update that installation in place. Do not uninstall to update: uninstalling removes the saved pairing identity and preferences. A running permission session may need to be authorized again when updating/restarting processes.
