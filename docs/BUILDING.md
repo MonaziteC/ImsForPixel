@@ -2,7 +2,7 @@
 
 ## Toolchain
 
-- JDK 17
+- JDK 21 (Java/Kotlin Android bytecode target stays 17)
 - Android SDK Platform 36
 - Gradle wrapper 8.13 / Android Gradle plugin 8.13.0
 - Kotlin and Compose compiler plugin 2.2.20
@@ -19,7 +19,21 @@ Configure your SDK through Android Studio / local.properties or ANDROID_HOME, th
 
 Output: `app/build/outputs/apk/release/app-release.apk`.
 
-Local UI semantics tests run under Robolectric. They do not prove radio behavior, deep-sleep timing or indefinite session survival on a physical phone. CI builds a debug APK and runs tests and Lint; downloaded CI artifacts are not automatically signed release assets.
+Local UI semantics tests run under Robolectric; pairing-crypto tests use the JVM's real JCA providers. They do not prove radio behavior, actual wireless pairing, deep-sleep timing or indefinite session survival on a physical phone. CI builds the optimized release APK, runs tests and release Lint, checks required entry names and the size budget, and saves the R8 mapping. CI uses an ephemeral development key; downloaded CI artifacts are not official update packages.
+
+Kadb 2.1.1's certificate classes use Java class-file version 65, so exercising them in JVM tests requires JDK 21. Android builds transform the dependency into DEX; this does not increase minSdk or change the phone's runtime requirement.
+
+## Release shrinking
+
+Release builds enable R8 code shrinking/optimization and resource shrinking. Keep rules in `app/proguard-rules.pro` protect the names used by detached instrumentation commands, ART hidden-API helpers and Bouncy Castle's dynamically registered JCA providers. Do not replace these with blanket obfuscation rules or remove crypto providers solely because there is no direct source reference. The narrowly scoped JNDI warning suppression covers BC's unused desktop LDAP/CRL paths; Android does not provide that API.
+
+Check the produced APK with:
+
+```sh
+python3 scripts/check-release-apk.py app/build/outputs/apk/release/app-release.apk --max-bytes 24226126
+```
+
+The budget is the previous 1.1.7 APK size. This static check reads actual DEX class/method tables; it cannot prove pairing or privileged operations on a phone. Retain `app/build/outputs/mapping/release/` for each distributed APK to decode obfuscated crash traces. Debug APKs intentionally remain unshrunk for development and will be much larger.
 
 ## Signing
 

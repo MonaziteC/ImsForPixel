@@ -40,44 +40,6 @@ class MainActivity : ComponentActivity() {
         @JvmStatic
         var pairingPort: Int? = null
         var onAuthStatusChanged: (() -> Unit)? = null
-        // Callback: notified when BrokerInstrumentation finishes (activate or restore)
-        var onInstrumentDone: ((isActivate: Boolean, success: Boolean) -> Unit)? = null
-    }
-
-    fun showImsStatusNotification(isActivate: Boolean) {
-        val channelId = "ims_status_channel"
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val ch = NotificationChannel(channelId, getString(R.string.notification_channel_ims_status), NotificationManager.IMPORTANCE_HIGH)
-            getSystemService(NotificationManager::class.java)?.createNotificationChannel(ch)
-        }
-        // Read actual IMS status from files
-        val slot0 = try { java.io.File(filesDir, "ims_status_0.txt").readText().trim().toBoolean() } catch (e: Exception) { false }
-        val slot1 = try { java.io.File(filesDir, "ims_status_1.txt").readText().trim().toBoolean() } catch (e: Exception) { false }
-        val anyRegistered = slot0 || slot1
-        val configFailed = (0..1).any { slot ->
-            runCatching { java.io.File(filesDir, "config_result_$slot.txt").readText().startsWith("ERROR:") }.getOrDefault(false)
-        }
-        val title = if (configFailed) getString(R.string.result_failed) else if (isActivate) {
-            if (anyRegistered) getString(R.string.notification_title_volte_success) else getString(R.string.notification_title_volte_done)
-        } else {
-            getString(R.string.notification_title_config_restored)
-        }
-        val body = if (configFailed) getString(R.string.result_failed_details) else if (isActivate) {
-            buildString {
-                if (slot0) append(getString(R.string.notification_sim1_registered)) else append(getString(R.string.notification_sim1_not_registered))
-                if (slot1) append(getString(R.string.notification_sim2_registered)) else append(getString(R.string.notification_sim2_not_registered))
-            }
-        } else {
-            getString(R.string.notification_config_cleared)
-        }
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(title)
-            .setContentText(body)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .build()
-        getSystemService(NotificationManager::class.java)?.notify(203, notification)
     }
 
     private var initialPage by mutableStateOf("status")
@@ -95,9 +57,9 @@ class MainActivity : ComponentActivity() {
         
         try {
             HiddenApiBypass.addHiddenApiExemptions("L")
-            Log.d("IMSForSven", "Successfully applied HiddenApiBypass exemptions")
+            Log.d("PixelIms", "Successfully applied HiddenApiBypass exemptions")
         } catch (e: Exception) {
-            Log.e("IMSForSven", "Failed to apply HiddenApiBypass exemptions", e)
+            Log.e("PixelIms", "Failed to apply HiddenApiBypass exemptions", e)
         }
 
         // Initialize KadbCert key store
@@ -112,12 +74,12 @@ class MainActivity : ComponentActivity() {
                 additionalPrivateKeysPem = emptyList()
             )
             KadbCert.ensureReady()
-            Log.d("IMSForSven", "KadbCert configured successfully")
+            Log.d("PixelIms", "KadbCert configured successfully")
         } catch (e: Exception) {
-            Log.e("IMSForSven", "Failed to configure KadbCert", e)
+            Log.e("PixelIms", "Failed to configure KadbCert", e)
         }
 
-        // Initialize defaults: enable everything except APN editing and Cross-SIM Calling, both of which are hidden and disabled by default.
+        // Keep existing preference keys and per-SIM defaults for in-place updates.
         val prefs = getSharedPreferences("volte_settings", Context.MODE_PRIVATE)
         if (!prefs.getBoolean("runtime_only_migration_v4", false)) {
             prefs.edit().remove("persistent_slot_0").remove("persistent_slot_1")
@@ -132,11 +94,11 @@ class MainActivity : ComponentActivity() {
                 editor.putBoolean("volte_slot_$slot", true)
                 editor.putBoolean("vonr_slot_$slot", true)
                 editor.putBoolean("vowifi_slot_$slot", true)
-                editor.putBoolean("cross_sim_slot_$slot", false) // Hidden and default false
+                editor.putBoolean("cross_sim_slot_$slot", false) // Default off
                 editor.putBoolean("wfc_roaming_slot_$slot", true)
                 editor.putBoolean("ss_ut_slot_$slot", true)
                 editor.putBoolean("show_ims_slot_$slot", true)
-                editor.putBoolean("allow_apn_slot_$slot", false) // Hidden and default false
+                editor.putBoolean("allow_apn_slot_$slot", false) // Default off
             }
             editor.putBoolean("initialized_defaults_v3", true)
             editor.apply()
@@ -171,8 +133,8 @@ class MainActivity : ComponentActivity() {
 
     fun requestNotificationPermissionAndShow() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
             } else {
                 showPairingNotification()
             }

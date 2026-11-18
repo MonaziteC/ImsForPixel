@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1-rc1 (size optimization test build)
+
+- Enable R8 and resource shrinking for release APKs; preserve shell entry names, hidden-API helpers and dynamically loaded crypto providers.
+- Remove the unused legacy ADB library, UI preview dependency, standalone IMS query tool, obsolete query-only mode, duplicate status notification and unused callback.
+- Reuse the shared IMS registration reader for activation polling; remove 62 unused translation keys per locale.
+- Add pairing-identity and SPAKE2 smoke tests; check the optimized APK's entry names and size in CI, and retain the R8 mapping.
+- Keep the Material 3 interface and existing guardian/configuration features. This RC still needs physical-device pairing, activation, developer-options-off recovery and restore regression checks before replacing 1.2.0.
+
 ## 1.2.0
 
 - Rename to Pixel IMS; official Material 3 1.4.0, dynamic system color, light/dark mode.

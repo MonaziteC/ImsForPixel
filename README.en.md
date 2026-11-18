@@ -33,13 +33,15 @@ The foreground service remains active even when its drawer notification is hidde
 
 ## Build
 
-JDK 17 and Android SDK Platform 36:
+JDK 21 and Android SDK Platform 36 (Android bytecode target remains 17):
 
 ```sh
 ./gradlew assembleRelease testDebugUnitTest lintRelease
 ```
 
 See [build and signing instructions](docs/BUILDING.md), [architecture](docs/ARCHITECTURE.md), [validation](docs/VALIDATION.md) and [fork guide](FORK_GUIDE.md). The minimum installation API is 29; this is not a claim of device testing across every supported API. The current user has reported working behavior on Pixel / Android 17.
+
+The 1.2.1-rc1 test build reduces APK size from 30.19 MB to 6.75 MB. See the [size cleanup record](docs/SIZE_OPTIMIZATION.md) for measurements and the remaining device regression checks.
 
 ## Privacy and attribution
 

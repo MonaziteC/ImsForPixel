@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Pixel IMS</string>
-    <string name="app_subtitle">Настройка вызовов VoLTE/VoNR без Root</string>
 
     <!-- Notification Strings -->
     <string name="notification_channel_ims_status">Статус активации IMS</string>
@@ -29,74 +28,14 @@
     <string name="toast_pairing_failed">Ошибка сопряжения: %1$s</string>
     <string name="notification_pairing_failed">Ошибка сопряжения: %1$s</string>
 
-    <!-- Toast Strings -->
-    <string name="toast_enable_wireless_debugging">Сначала включите беспроводную отладку</string>
-    <string name="toast_activation_failed">Сбой активации: %1$s</string>
-    <string name="toast_restore_failed">Сбой восстановления: %1$s</string>
-    <string name="toast_developer_options_not_found">Параметры разработчика не найдены</string>
-
-    <!-- UI Tabs & Headers -->
-    <string name="sim_slot_1">SIM 1</string>
-    <string name="sim_slot_2">SIM 2</string>
-    <string name="config_panel_title">Параметры оператора (SIM %1$d)</string>
-    <string name="badge_config_applied">Конфиг: Применён</string>
-    <string name="badge_config_default">Конфиг: По умолчанию</string>
-    <string name="badge_ims_registered">IMS: Зарегистрирован</string>
-    <string name="badge_ims_not_registered">IMS: Не зарегистрирован</string>
-
-    <!-- Toggle Switches -->
-    <string name="toggle_volte_title">Включить вызовы VoLTE (VoLTE)</string>
-    <string name="toggle_volte_desc">Разрешить голосовые вызовы через сеть 4G/LTE</string>
-    <string name="toggle_vonr_title">Включить вызовы 5G (VoNR)</string>
-    <string name="toggle_vonr_desc">Включить поддержку голосовых вызовов в сетях 5G (VoNR)</string>
-    <string name="toggle_vowifi_title">Включить вызовы по Wi-Fi (VoWiFi)</string>
-    <string name="toggle_vowifi_desc">Совершать вызовы по Wi-Fi при слабом сигнале сети</string>
-    <string name="toggle_wfc_roaming_title">Включить VoWiFi в роуминге</string>
-    <string name="toggle_wfc_roaming_desc">Использовать вызовы по Wi-Fi за границей или в роуминге</string>
-    <string name="toggle_ss_ut_title">Включить доп. услуги (UT)</string>
-    <string name="toggle_ss_ut_desc">Включить переадресацию, ожидание вызова и доп. сетевые функции</string>
-
     <!-- Wireless Debugging Card -->
-    <string name="card_activation_title">Активация через беспроводную отладку</string>
-    <string name="step1_title">Шаг 1: Подключитесь к Wi-Fi (Обязательно)</string>
-    <string name="step1_desc">Для беспроводной отладке требуется подключение к сети Wi-Fi</string>
-    <string name="status_connected">Подключено</string>
-    <string name="status_not_connected">Не подключено</string>
 
-    <string name="step2_title">Шаг 2: Включите службу и сопряжение</string>
-    <string name="step2_status_authorized">Сопряжено и авторизовано</string>
-    <string name="step2_status_needs_pairing">Служба включена (требуется сопряжение)</string>
-    <string name="step2_status_prompt">Включите беспроводную отладку в настройках</string>
-    <string name="badge_authorized">Авторизовано</string>
-    <string name="badge_unpaired">Не сопряжено</string>
-    <string name="btn_open_wireless_debugging">Перейти к беспроводной отладке</string>
-
-    <string name="step3_title">Шаг 3: Активация в один клик</string>
-    <string name="step3_desc">Применить параметры к активным SIM-картам</string>
-    <string name="sim1_config_title">Настройки вызовов SIM 1</string>
-    <string name="sim2_config_title">Настройки вызовов SIM 2</string>
-    <string name="status_app_optimized">Оптимизировано</string>
-    <string name="status_system_default">По умолчанию</string>
-    <string name="btn_activate">Активировать</string>
-    <string name="btn_waiting">Ожидание службы...</string>
-    <string name="btn_restore">Сбросить настройки</string>
-    <string name="hint_ims_update">💡 Статус IMS обновится автоматически в течение нескольких секунд после активации.</string>
-    <string name="toggle_hide_advanced">Скрыть расширенные настройки</string>
-    <string name="toggle_show_advanced">Показать расширенные настройки</string>
     <string name="label_adb_port">Порт подключения (ADB Port)</string>
-    <string name="toggle_nr_title">5G NR (NSA/SA)</string>
-    <string name="toggle_nr_desc">Разрешить NSA и SA. Выключение возвращает политику оператора после применения. Агрегация зависит от модема и сети.</string>
-    <string name="toggle_nr_plus_title">Значок 5GA / 5G+</string>
-    <string name="toggle_nr_plus_desc">Требуется 5G NR. Порог NR 110 МГц и диапазоны Китая; вид значка зависит от Android. Нажмите активацию.</string>
     <string name="result_temporary">Последнее применение: временные настройки проверены.</string>
     <string name="result_cleared">Временные настройки сброшены. Сохранённые другими инструментами настройки не изменены.</string>
     <string name="result_failed">Ошибка применения настроек</string>
     <string name="result_failed_details">Откройте панель SIM для просмотра ошибки. Настройки могли не примениться.</string>
-    <string name="persistence_unavailable">Постоянное сохранение отключено: система разрешает его только системным приложениям. Применение и сброс используют временные настройки.</string>
     <string name="guard_title">Защита настроек Pixel IMS</string>
-    <string name="guard_desc">Защита включена по умолчанию. Активация применяет настройки и запускает защиту активных SIM. Дождитесь готовности и отключите режим разработчика. Перед изменением настроек остановите защиту. После перезагрузки или потери сеанса нужна повторная авторизация.</string>
-    <string name="guard_idle">Ожидание активации и авторизации</string>
-    <string name="guard_start">Активировать и защищать</string>
     <string name="guard_stop">Остановить</string>
     <string name="guard_starting">Запуск защиты…</string>
     <string name="guard_wait_off">Ожидание отключения режима разработчика и отладки</string>
@@ -107,18 +46,10 @@
     <string name="guard_reauthorize">Сеанс разрешений завершён · авторизуйтесь и запустите снова</string>
     <string name="guard_retry">Ожидание повторной попытки восстановления</string>
     <string name="guard_stopped">Защита остановлена; применённые параметры не отменены</string>
-    <string name="guard_stopping">Остановка защиты… При завершении авторизации приложение может закрыться.</string>
     <string name="guard_failed">Не удалось запустить защиту. Подключитесь заново и повторите попытку.</string>
     <string name="guard_unreadable">Защита работает · ожидание доступности настроек SIM</string>
     <string name="guard_pending">Процесс защиты работает · ожидание обновления состояния</string>
-    <string name="guard_lost">Защита завершена · подключитесь и запустите снова</string>
-    <string name="guard_need_connection">Сначала выполните сопряжение и укажите порт беспроводной отладки.</string>
-    <string name="guard_already_active">Сеанс защиты уже работает.</string>
-    <string name="guard_launch_failed">Не удалось запустить защиту. Проверьте подключение беспроводной отладки.</string>
-    <string name="guard_debug_off">Режим разработчика, USB-отладка и беспроводная отладка отключены</string>
     <string name="guard_count">Подтверждённых восстановлений: %1$d</string>
     <string name="guard_battery">Фоновое использование батареи</string>
     <string name="guard_auto">Автоматическая защита после активации</string>
-    <string name="guard_sims">Защита SIM: %1$s</string>
-    <string name="guard_notifications">Скрыть уведомления в настройках</string>
 </resources>

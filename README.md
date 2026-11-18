@@ -58,13 +58,13 @@ Pixel IMS 基于 [svenuks/ImsForPixel](https://github.com/svenuks/ImsForPixel)�
 
 ## 开发与构建
 
-使用 JDK 17、Android SDK Platform 36：
+使用 JDK 21、Android SDK Platform 36（Android 字节码目标仍为 17）：
 
 ```sh
 ./gradlew assembleRelease testDebugUnitTest lintRelease
 ```
 
-UI 使用官方 Material 3 1.4.0，当前构建通过 34 项 JVM / Compose 界面语义测试，Lint 为零错误。完整工具链、签名配置和验证边界见 [构建说明](docs/BUILDING.md) 与 [验证记录](docs/VALIDATION.md)。
+UI 使用官方 Material 3 1.4.0，当前构建通过 37 项 JVM / Compose 界面语义测试，Lint 为零错误。完整工具链、签名配置和验证边界见 [构建说明](docs/BUILDING.md) 与 [验证记录](docs/VALIDATION.md)。1.2.1-rc1 的 APK 从 30.19 MB 缩减至 6.75 MB，见 [体积清理记录](docs/SIZE_OPTIMIZATION.md)；该测试版仍需真机回归。
 
 ## 反馈
 

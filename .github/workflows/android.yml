@@ -13,14 +13,17 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools platforms;android-36 build-tools;35.0.0'
           log-accepted-android-sdk-licenses: false
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew assembleDebug testDebugUnitTest lintDebug
+      - run: ./gradlew assembleRelease testDebugUnitTest lintRelease
+      - run: python3 scripts/check-release-apk.py app/build/outputs/apk/release/app-release.apk --max-bytes 24226126
       - uses: actions/upload-artifact@v4
         with:
-          name: pixel-ims-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: pixel-ims-release-test
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/mapping/release/*.txt

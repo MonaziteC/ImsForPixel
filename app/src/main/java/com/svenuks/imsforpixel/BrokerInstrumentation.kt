@@ -4,9 +4,7 @@ import android.app.Instrumentation
 import android.content.Context
 import android.os.Bundle
 import android.os.PersistableBundle
-import android.system.Os
 import android.telephony.CarrierConfigManager
-import android.telephony.SubscriptionInfo
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import android.util.Log
@@ -14,7 +12,6 @@ import org.lsposed.hiddenapibypass.HiddenApiBypass
 import java.lang.reflect.Method
 import android.os.Build
 import android.app.UiAutomation
-import android.content.Intent
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -57,9 +54,6 @@ class BrokerInstrumentation : Instrumentation() {
         super.onCreate(arguments)
         Log.d(TAG, "BrokerInstrumentation starting...")
         
-        val queryOnly = arguments?.getString("query_only") == "true" || arguments?.getBoolean("query_only") == true
-        Log.d(TAG, "queryOnly mode: $queryOnly")
-        
         val clearArg = arguments?.getString("clear") == "true" || arguments?.getBoolean("clear") == true
         Log.d(TAG, "clearArg: $clearArg")
 
@@ -101,13 +95,9 @@ class BrokerInstrumentation : Instrumentation() {
                 }
                 
                 try {
-                    if (queryOnly) {
-                        queryStatusOnly()
-                    } else {
-                        patchAllSimsAndPoll(arguments)
-                        completed = true
-                        showImsStatusNotification(!clearArg)
-                    }
+                    patchAllSimsAndPoll(arguments)
+                    completed = true
+                    showImsStatusNotification(!clearArg)
                 } finally {
                     if (uiAutomation != null) {
                         try {
@@ -187,80 +177,6 @@ class BrokerInstrumentation : Instrumentation() {
 
         Log.d(TAG, "Resolved SIM targets: $targets")
         return targets
-    }
-
-    private fun queryStatusOnly() {
-        val subManager = context.getSystemService(SubscriptionManager::class.java) ?: return
-        val simTargets = getActiveSimTargets(subManager)
-        Log.d(TAG, "QueryStatusOnly: Found ${simTargets.size} active SIM targets")
-
-        val sharedPrefs = context.getSharedPreferences("volte_settings", Context.MODE_PRIVATE)
-
-        for ((slotIndex, subId) in simTargets) {
-            val isImsRegistered = checkImsRegistered(subId, slotIndex)
-            Log.d(TAG, "QueryStatusOnly: SIM slot $slotIndex (subId $subId) IMS Registered: $isImsRegistered")
-            
-            sharedPrefs.edit().putBoolean("ims_registered_slot_$slotIndex", isImsRegistered).commit()
-            
-            try {
-                val statusFile = java.io.File(context.filesDir, "ims_status_$slotIndex.txt")
-                statusFile.writeText(isImsRegistered.toString())
-                Log.d(TAG, "QueryStatusOnly: Saved status file for slot $slotIndex")
-            } catch (e: Exception) {
-                Log.e(TAG, "QueryStatusOnly: Failed to save status file", e)
-            }
-        }
-    }
-
-    private fun checkImsRegistered(subId: Int, slotIndex: Int): Boolean {
-        return try {
-            val serviceManagerClass = Class.forName("android.os.ServiceManager")
-            val getServiceMethod = serviceManagerClass.getMethod("getService", String::class.java)
-            val binder = getServiceMethod.invoke(null, Context.TELEPHONY_SERVICE) as android.os.IBinder
-            val stubClass = Class.forName("com.android.internal.telephony.ITelephony\$Stub")
-            val asInterfaceMethod = stubClass.getMethod("asInterface", android.os.IBinder::class.java)
-            val telephonyService = asInterfaceMethod.invoke(null, binder)
-            
-            val iTelephonyClass = Class.forName("com.android.internal.telephony.ITelephony")
-            
-            // 1. Try isImsRegisteredForSubscriber(subId)
-            try {
-                val method = iTelephonyClass.declaredMethods.firstOrNull {
-                    it.name == "isImsRegisteredForSubscriber" && it.parameterTypes.size == 1 && it.parameterTypes[0] == Int::class.javaPrimitiveType
-                }
-                if (method != null) {
-                    method.isAccessible = true
-                    return method.invoke(telephonyService, subId) as Boolean
-                }
-            } catch (e: Exception) {}
-
-            // 2. Try isImsRegistered(subId)
-            try {
-                val method = iTelephonyClass.declaredMethods.firstOrNull {
-                    it.name == "isImsRegistered" && it.parameterTypes.size == 1 && it.parameterTypes[0] == Int::class.javaPrimitiveType
-                }
-                if (method != null) {
-                    method.isAccessible = true
-                    return method.invoke(telephonyService, subId) as Boolean
-                }
-            } catch (e: Exception) {}
-
-            // 3. Try isImsRegistered(slotIndex)
-            try {
-                val method = iTelephonyClass.declaredMethods.firstOrNull {
-                    it.name == "isImsRegistered"
-                }
-                if (method != null) {
-                    method.isAccessible = true
-                    return method.invoke(telephonyService, slotIndex) as Boolean
-                }
-            } catch (e: Exception) {}
-
-            false
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to check IMS registration for subId=$subId, slot=$slotIndex reflectively", e)
-            false
-        }
     }
 
     @android.annotation.SuppressLint("MissingPermission")
@@ -361,7 +277,7 @@ class BrokerInstrumentation : Instrumentation() {
         while (pollsLeft > 0) {
             var allRegistered = true
             for ((slotIndex, subId) in simTargets) {
-                val isImsRegistered = checkImsRegistered(subId, slotIndex)
+                val isImsRegistered = (ImsRegistrationReader.read(subId) == true)
                 Log.d(TAG, "Poll $pollsLeft: SIM slot $slotIndex (subId $subId) IMS Registered: $isImsRegistered")
                 
                 sharedPrefs.edit().putBoolean("ims_registered_slot_$slotIndex", isImsRegistered).commit()

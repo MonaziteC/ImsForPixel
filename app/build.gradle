@@ -12,8 +12,8 @@ android {
         applicationId "com.svenuks.imsforpixel"
         minSdk 29
         targetSdk 36
-        versionCode 10
-        versionName "1.2.0"
+        versionCode 11
+        versionName "1.2.1-rc1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -21,7 +21,15 @@ android {
         }
     }
 
-    testOptions { unitTests.includeAndroidResources = true }
+    testOptions {
+        unitTests.includeAndroidResources = true
+        unitTests.all {
+            // Kadb's certificate code is Java 21; Android compilation stays at 17.
+            javaLauncher = javaToolchains.launcherFor {
+                languageVersion = JavaLanguageVersion.of(21)
+            }
+        }
+    }
 
     def publishKeystore = providers.environmentVariable("PIXEL_IMS_KEYSTORE_FILE").orNull
     signingConfigs {
@@ -36,7 +44,8 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             signingConfig publishKeystore != null ? signingConfigs.publication : signingConfigs.debug
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -59,15 +68,14 @@ dependencies {
     testImplementation 'androidx.compose.ui:ui-test-junit4'
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
     testImplementation 'org.robolectric:robolectric:4.14.1'
+    // Kadb uses this at runtime; expose it only to the pairing smoke tests.
+    testImplementation 'com.github.Flyfish233:spake2-java:1.0.5'
     implementation 'androidx.core:core-ktx:1.13.1'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.4'
     implementation 'androidx.activity:activity-compose:1.9.1'
     
     // Compose
     implementation platform('androidx.compose:compose-bom:2026.03.00')
     implementation 'androidx.compose.ui:ui'
-    implementation 'androidx.compose.ui:ui-graphics'
-    implementation 'androidx.compose.ui:ui-tooling-preview'
     implementation 'androidx.compose.material3:material3'
     implementation 'androidx.compose.material:material-icons-core'
 
@@ -75,6 +83,5 @@ dependencies {
     implementation 'org.lsposed.hiddenapibypass:hiddenapibypass:4.3'
 
     // ADB protocol library for local wireless debugging
-    implementation 'com.tananaev:adblib:1.3'
     implementation 'com.flyfishxu:kadb:2.1.1'
 }
