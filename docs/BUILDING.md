@@ -59,7 +59,7 @@ The published v1.2.0 APK retains the development signature used by the preceding
 
 ## Source provenance
 
-The original implementation changes are in commit `ddbdc524d5d8bbbf9ee4352628b583e24e057d53`. Later publication commits update documentation and CI only. The v1.2.0 APK was built from the same application code; publication documentation and automation do not change the binary.
+The v1.2.0 implementation changes are in commit `ddbdc524d5d8bbbf9ee4352628b583e24e057d53`; its subsequent publication commits updated documentation and CI. The size cleanup is in `7efc7835959203b2aea85b45932e50448a33318b`. Version 1.2.1 promotes that implementation with updated version metadata and JVM-test isolation. Release tags identify the complete corresponding source, and APKs embed their build-source revision in `META-INF/version-control-info.textproto`.
 
 ## Uploading an already tested APK
 

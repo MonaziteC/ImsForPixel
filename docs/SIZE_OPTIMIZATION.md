@@ -6,13 +6,13 @@ These measurements describe the optimized RC. The user subsequently reported nor
 
 All sizes below are bytes, measured from signed universal APKs. No architecture or language was removed to produce this reduction.
 
-| Item | 1.2.0 | 1.2.1-rc1 |
-| --- | ---: | ---: |
-| Downloaded APK | 30,194,378 | 6,754,364 |
-| Uncompressed DEX | 28,205,296 | 5,127,960 |
-| Packaged DEX classes | 21,655 | 6,122 |
-| Uncompressed Android resources (`res/` + `resources.arsc`) | 609,591 | 251,923 |
-| Uncompressed native libraries | 37,392 | 37,392 |
+| Item | 1.2.0 | 1.2.1-rc1 | 1.2.1 |
+| --- | ---: | ---: | ---: |
+| Downloaded APK | 30,194,378 | 6,754,364 | 6,754,356 |
+| Uncompressed DEX | 28,205,296 | 5,127,960 | 5,127,956 |
+| Packaged DEX classes | 21,655 | 6,122 | 6,122 |
+| Uncompressed Android resources (`res/` + `resources.arsc`) | 609,591 | 251,923 | 251,923 |
+| Uncompressed native libraries | 37,392 | 37,392 | 37,392 |
 
 APK reduction: **77.63%**, or 23,440,014 bytes. The optimized APK is also smaller than the 24,226,126-byte pre-redesign 1.1.7 APK. Most of the saving comes from shrinking and optimizing unused program code, rather than removing images or changing the UI framework. APK overhead includes alignment, signing and packaged Java library resources, so the rows do not add up to the download size.
 
