@@ -57,8 +57,6 @@ class GuardianInstrumentation : Instrumentation() {
         val usageResults = mutableMapOf<Int, UsagePreferenceExperiment.Result>()
         val changes = java.util.concurrent.ConcurrentHashMap<Int, java.util.concurrent.atomic.AtomicInteger>()
         val cm = ctx.getSystemService(CarrierConfigManager::class.java)
-        fun allOff(force: Boolean = false) = debugReader?.readFresh(force)
-            ?.allowsWrites(SystemClock.elapsedRealtime()) == true
         fun permission() = ctx.checkSelfPermission(Manifest.permission.MODIFY_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
         fun publish(state: String, phase: String) {
             last.put("guardian_id", id).put("state", state).put("phase", phase)
@@ -66,7 +64,7 @@ class GuardianInstrumentation : Instrumentation() {
                 .put("boot", GuardianStore.boot(ctx)).put("pid", Process.myPid())
             last.put("usage_pending_count", UsagePreferenceStore(ctx).pendingCount())
             val debug = debugReader?.latest ?: DebugSettingsState.unknown("authorization_not_ready")
-            last.put("debug_flags", debug.json()).put("debug_off", debug.allowsWrites(SystemClock.elapsedRealtime()))
+            last.put("debug_flags", debug.json()).put("debug_off", debug.offForDisplay(SystemClock.elapsedRealtime()) ?: JSONObject.NULL)
             GuardianStore.write(ctx, last)
             // Always submit the system-required FGS notification. POST_NOTIFICATIONS controls
             // drawer visibility; no zero-ID, invalid-channel, or notification-cancellation trick.
@@ -87,13 +85,12 @@ class GuardianInstrumentation : Instrumentation() {
                 "android.permission.READ_PRIVILEGED_PHONE_STATE", Manifest.permission.MODIFY_PHONE_STATE,
                 Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             delegated = true
-            debugReader = DebugSettingsReader(ctx, id, automation)
+            debugReader = runCatching { DebugSettingsReader(ctx, id, automation) }.getOrNull()
             GuardianRuntime.debugReader = debugReader
-            debugReader.readFresh(true)
+            debugReader?.request()
             debugObserver = object : ContentObserver(null) {
                 override fun onChange(selfChange: Boolean) {
                     debugReader?.settingsChanged()
-                    GuardianRuntime.signal()
                 }
             }
             runCatching {
@@ -179,7 +176,7 @@ class GuardianInstrumentation : Instrumentation() {
                         }
                         usageAgents[target.slot]?.let { agent ->
                             usageResults[target.slot] = agent.tick(SystemClock.elapsedRealtime()) {
-                                permission() && callsIdle() && present(target) && (!agent.requested || allOff(true))
+                                permission() && callsIdle() && present(target)
                             }
                         }
                     }
@@ -195,9 +192,8 @@ class GuardianInstrumentation : Instrumentation() {
                             .put("usage_requested", usageResults[target.slot]?.requested ?: false)
                             .put("usage_current", usageResults[target.slot]?.current ?: JSONObject.NULL)
                     }))
-                    val off = allOff()
                     val granted = permission()
-                    last.put("debug_off", off).put("permission", granted)
+                    last.put("permission", granted)
                     if (!granted) {
                         terminal = "needs_authorization"
                         publish(terminal, terminal)
@@ -213,9 +209,9 @@ class GuardianInstrumentation : Instrumentation() {
                                 continue
                             }
                             try {
-                                val result = guards.getValue(target.slot).tick(SystemClock.elapsedRealtime(), off,
+                                val result = guards.getValue(target.slot).tick(SystemClock.elapsedRealtime(),
                                     granted, cm.getConfigForSubId(target.subId),
-                                    { allOff(true) && permission() && callsIdle() && present(target) }) { values ->
+                                    { permission() && callsIdle() && present(target) }) { values ->
                                     // Recovery merges only app-owned keys. It never clears all overrides,
                                     // resets IMS, changes user IMS preferences, or requests persistence.
                                     val method = cm.javaClass.getMethod("overrideConfig", Int::class.javaPrimitiveType,
@@ -258,7 +254,7 @@ class GuardianInstrumentation : Instrumentation() {
                 val waitMs = minOf(if (SystemClock.elapsedRealtime() < GuardianRuntime.monitorUntil) 5_000L else 60_000L, when (phase) {
                     "matching" -> if (usageResults.values.any { it.pending }) 2_000L
                         else if (usageResults.values.any { it.requested }) 10_000L else 60_000L
-                    "verified", "write_sent", "waiting_readback", "settling" -> 2_000L
+                    "verified", "write_sent", "waiting_readback", "write_deferred" -> 2_000L
                     "cooldown", "write_failed", "readback_timeout" -> 5_000L
                     "rate_limited" -> 30_000L
                     else -> 15_000L

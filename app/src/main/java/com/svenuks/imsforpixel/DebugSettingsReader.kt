@@ -13,7 +13,6 @@ import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
 
 /** Only the existing retained UiAutomation owner executes these fixed, read-only commands.
  * Permission adoption does not change the app Binder UID or defeat provider redaction.
@@ -41,25 +40,17 @@ internal class DebugSettingsReader(private val context: Context, private val ses
             val result = if (generation.get() == expectedGeneration) observed
                 else DebugSettingsState.unknown("settings_changed_during_read")
             if (!closed) {
-                val previous = latest
                 latest = result
                 runCatching { DebugSettingsStore.write(context, session, result) }
-                if (listOf(previous.developer, previous.usb, previous.wireless) !=
-                    listOf(result.developer, result.usb, result.wireless)) GuardianRuntime.signal()
             }
             result
         }.also { inFlight = it }
     }
-    fun request() { schedule(false) }
+    fun request() { runCatching { schedule(false) } }
     fun settingsChanged() {
         generation.incrementAndGet()
         latest = DebugSettingsState.unknown("settings_changed")
-        schedule(true)
-    }
-    fun readFresh(force: Boolean = false): DebugSettingsState {
-        val job = schedule(force)
-        return if (job == null) latest else runCatching { job.get(1_800, TimeUnit.MILLISECONDS) }
-            .getOrElse { DebugSettingsState.unknown("shell_query_failed_or_timed_out") }
+        runCatching { schedule(true) }
     }
 
     private fun query(): String {

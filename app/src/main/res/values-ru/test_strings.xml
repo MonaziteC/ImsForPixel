@@ -7,7 +7,7 @@
     <string name="ui_usage_already">Приоритет данных уже установлен · без изменений</string>
     <string name="ui_usage_unsupported">Поддержка приоритета данных не заявлена</string>
     <string name="ui_usage_unavailable">Настройка или SIM недоступна · новых изменений нет</string>
-    <string name="ui_usage_waiting">Ожидание отключения отладки и завершения звонков</string>
+    <string name="ui_usage_waiting">Ожидание завершения всех звонков</string>
     <string name="ui_usage_applying">Запрос отправлен · ожидание обратного чтения</string>
     <string name="ui_usage_restoring">Ожидание восстановления исходной настройки</string>
     <string name="ui_usage_restored">Исходная настройка восстановлена</string>
@@ -27,7 +27,7 @@
     <string name="ui_radio_call">Разговор</string>
     <string name="ui_radio_enabled">Вкл.</string>
     <string name="ui_radio_disabled">Выкл.</string>
-    <string name="ui_debug_unconfirmed">Состояние отладки неизвестно или устарело. Запись ждёт подтверждения отключения всех переключателей.</string>
+    <string name="ui_debug_unconfirmed">Состояние отладки неизвестно или устарело. Это не блокирует восстановление настроек.</string>
     <string name="ui_debug_flags">Разработчик: %1$s · USB: %2$s · Беспроводная отладка: %3$s</string>
     <string name="ui_flag_on">Вкл.</string>
     <string name="ui_flag_off">Выкл.</string>

@@ -38,7 +38,6 @@
     <string name="guard_title">Защита настроек Pixel IMS</string>
     <string name="guard_stop">Остановить</string>
     <string name="guard_starting">Запуск защиты…</string>
-    <string name="guard_wait_off">Ожидание отключения режима разработчика и отладки</string>
     <string name="guard_matching">Защита работает · настройки применены</string>
     <string name="guard_repairing">Восстановление и проверка параметров…</string>
     <string name="guard_call">Защита работает · запись приостановлена на время звонка</string>

@@ -189,7 +189,7 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
                         Text(stringResource(title), style = MaterialTheme.typography.titleLarge)
                     }
                     Text(stringResource(when {
-                        active && liveDebug?.allowsWrites(SystemClock.elapsedRealtime()) == true -> R.string.ui_debug_closed
+                        active && liveDebug?.offForDisplay(SystemClock.elapsedRealtime()) == true -> R.string.ui_debug_closed
                         active && !busy && liveDebug?.fresh(SystemClock.elapsedRealtime()) == true && liveDebug.anyOn -> R.string.ui_can_close_debug
                         active && !busy -> R.string.ui_debug_unconfirmed
                         else -> R.string.ui_guard_intro
@@ -284,7 +284,7 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
                                 .put("radio_history", history).put("guardian_phase", snapshot?.optString("phase"))
                                 .put("debug_flags_ui", liveDebug?.json() ?: JSONObject.NULL)
                                 .put("debug_flags_keeper", snapshot?.optJSONObject("debug_flags") ?: JSONObject.NULL)
-                                .put("debug_off", liveDebug?.allowsWrites(SystemClock.elapsedRealtime()) ?: JSONObject.NULL)
+                                .put("debug_off", liveDebug?.offForDisplay(SystemClock.elapsedRealtime()) ?: JSONObject.NULL)
                             context.getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(
                                 android.content.ClipData.newPlainText("Pixel IMS test snapshot", copy.toString(2)))
                         }) { Text(stringResource(R.string.ui_radio_copy)) }

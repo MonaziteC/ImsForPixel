@@ -7,7 +7,7 @@
     <string name="ui_usage_already">原本已是数据优先 · 未做修改</string>
     <string name="ui_usage_unsupported">本机未声明支持数据优先模式</string>
     <string name="ui_usage_unavailable">无法读取偏好或 SIM 身份 · 未做新修改</string>
-    <string name="ui_usage_waiting">等待关闭调试且所有通话结束</string>
+    <string name="ui_usage_waiting">等待所有通话结束</string>
     <string name="ui_usage_applying">请求已发送 · 等待订阅偏好回读</string>
     <string name="ui_usage_restoring">等待恢复原选网设置</string>
     <string name="ui_usage_restored">已恢复原选网设置</string>
@@ -27,7 +27,7 @@
     <string name="ui_radio_call">通话中</string>
     <string name="ui_radio_enabled">开启</string>
     <string name="ui_radio_disabled">关闭</string>
-    <string name="ui_debug_unconfirmed">调试状态未知或已过期；确认三个开关均关闭后才允许补写。</string>
+    <string name="ui_debug_unconfirmed">调试状态未知或已过期；不影响自定义配置守护。</string>
     <string name="ui_debug_flags">开发者选项：%1$s · USB：%2$s · 无线调试：%3$s</string>
     <string name="ui_flag_on">开启</string>
     <string name="ui_flag_off">关闭</string>

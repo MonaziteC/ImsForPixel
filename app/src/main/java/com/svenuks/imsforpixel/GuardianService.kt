@@ -109,7 +109,7 @@ class GuardianStopReceiver : BroadcastReceiver() {
 
 internal fun guardianPhaseLabel(phase: String): Int = when (phase) {
     "starting" -> R.string.guard_starting
-    "waiting_debug_off", "settling" -> R.string.guard_wait_off
+    "write_deferred" -> R.string.guard_pending
     "matching", "verified" -> R.string.guard_matching
     "write_sent", "waiting_readback" -> R.string.guard_repairing
     "call_active" -> R.string.guard_call

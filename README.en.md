@@ -23,7 +23,7 @@ NR and icon settings do not force physical carrier aggregation or a 5G-Advanced 
 1. Download an APK from [Releases](https://github.com/MonaziteC/ImsForPixel/releases).
 2. Choose the desired settings for each SIM.
 3. Tap **Apply and protect**. Temporarily connect to Wi-Fi, enable wireless debugging and pair.
-4. Apply the settings and wait until the guardian reports that authorization is ready. Then turn developer options off.
+4. Apply the settings and start the authorized guardian. You can then turn developer options off. On, off or unknown debug-state readings do not gate configuration recovery.
 
 The guardian does not need an ongoing ADB connection. Pause it before editing settings. **Reboot, force-stop, keeper death or loss of the authorization session may require authorization again.** Saved preferences are not permanent system overrides.
 

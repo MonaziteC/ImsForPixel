@@ -1,3 +1,5 @@
+> Historical build. Superseded by [test4](TEST_GUARDIAN_INDEPENDENT.md): debug-state readings never gate recovery or verification.
+
 # 1.2.2-data-test2
 
 Follow-up to the data-centric experiment. The user reported that developer options could still be shown as off while enabled, no reproducible speed benefit from the data-centric switch, and a slow sample with a reported bandwidth list of only 60000 kHz instead of 60000/100000/30000 kHz. These observations do not establish a VoNR or CA root cause.

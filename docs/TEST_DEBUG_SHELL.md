@@ -1,3 +1,5 @@
+> Historical build. Superseded by [test4](TEST_GUARDIAN_INDEPENDENT.md): debug-state readings never gate recovery or verification.
+
 # 1.2.2-data-test3: Android 17 developer-state redaction
 
 ## Confirmed cause

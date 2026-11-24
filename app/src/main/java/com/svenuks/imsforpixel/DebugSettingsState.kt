@@ -15,7 +15,8 @@ internal data class DebugSettingsState(
     val allOff get() = developer == 0 && usb == 0 && wireless == 0
     val anyOn get() = developer == 1 || usb == 1 || wireless == 1
     fun fresh(now: Long) = trusted && now - elapsed in 0..6_000L
-    fun allowsWrites(now: Long) = allOff && fresh(now) && now - elapsed <= 3_000L
+    /** Display metadata only. Never consulted by any write/verification path. */
+    fun offForDisplay(now: Long): Boolean? = if (fresh(now) && allKnown) allOff else null
     fun json() = JSONObject().put("developer", developer ?: JSONObject.NULL)
         .put("usb", usb ?: JSONObject.NULL).put("wireless", wireless ?: JSONObject.NULL)
         .put("sampled_elapsed", elapsed).put("sampled_at", sampledAt)

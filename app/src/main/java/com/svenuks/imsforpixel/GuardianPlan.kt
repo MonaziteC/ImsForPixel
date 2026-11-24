@@ -17,7 +17,7 @@ internal object GuardianPlan {
     fun phase(phases: List<String>): String {
         val priority = listOf("write_denied", "permission_unavailable", "target_missing", "call_active",
             "config_unreadable", "write_failed", "readback_timeout", "write_sent", "waiting_readback",
-            "rate_limited", "cooldown", "waiting_debug_off", "settling", "verified", "matching")
+            "rate_limited", "cooldown", "write_deferred", "verified", "matching")
         return priority.firstOrNull { it in phases } ?: "config_unreadable"
     }
 }

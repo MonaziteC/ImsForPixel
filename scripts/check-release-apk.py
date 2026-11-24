@@ -107,6 +107,8 @@ def main():
             failures.append("missing entry methods: " + name)
     if "ims.sa_disable_policy_int" in strings:
         failures.append("removed Keep SA configuration key has returned")
+    if "waiting_debug_off" in strings:
+        failures.append("removed developer-options recovery gate has returned")
     for descriptor in classes:
         if descriptor.startswith("Lcom/tananaev/adblib/") or descriptor.endswith("/ImsQueryTool;"):
             failures.append("obsolete code remains: " + descriptor)

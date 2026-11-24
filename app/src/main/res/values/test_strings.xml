@@ -7,7 +7,7 @@
     <string name="ui_usage_already">Already data-centric · no change made</string>
     <string name="ui_usage_unsupported">Data-centric mode is not declared supported</string>
     <string name="ui_usage_unavailable">Preference or SIM identity unavailable · no new change</string>
-    <string name="ui_usage_waiting">Waiting for debugging to be off and all calls to end</string>
+    <string name="ui_usage_waiting">Waiting for all calls to end</string>
     <string name="ui_usage_applying">Request sent · waiting for preference read-back</string>
     <string name="ui_usage_restoring">Waiting to restore the original selection setting</string>
     <string name="ui_usage_restored">Original selection setting restored</string>
@@ -27,7 +27,7 @@
     <string name="ui_radio_call">Call in progress</string>
     <string name="ui_radio_enabled">On</string>
     <string name="ui_radio_disabled">Off</string>
-    <string name="ui_debug_unconfirmed">Debugging state is unknown or stale. Recovery writes wait for confirmed off states.</string>
+    <string name="ui_debug_unconfirmed">Debugging state is unknown or stale. This does not block configuration recovery.</string>
     <string name="ui_debug_flags">Developer: %1$s · USB: %2$s · Wireless: %3$s</string>
     <string name="ui_flag_on">On</string>
     <string name="ui_flag_off">Off</string>

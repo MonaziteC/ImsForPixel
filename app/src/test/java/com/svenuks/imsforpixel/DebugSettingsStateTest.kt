@@ -17,26 +17,26 @@ class DebugSettingsStateTest {
         val sample = shell(dev = "1")
         assertTrue(sample.trusted); assertTrue(sample.anyOn)
         assertEquals(1, sample.developer); assertEquals(0, sample.usb)
-        assertFalse(sample.allowsWrites(1000))
+        assertFalse(sample.offForDisplay(1000) == true)
     }
-    @Test fun eachEnabledFlagBlocksRecoveryAndOnlyFreshVerifiedOffAllowsWrites() {
+    @Test fun eachEnabledFlagIsDisplayedAndExpiredSamplesAreUnknown() {
         for (sample in listOf(shell(dev = "1"), shell(usb = "1"), shell(wifi = "1")))
-            assertFalse(sample.allowsWrites(1000))
+            assertFalse(sample.offForDisplay(1000) == true)
         val off = shell()
-        assertTrue(off.allowsWrites(1000)); assertTrue(off.allowsWrites(4000))
-        assertFalse(off.allowsWrites(999)); assertFalse(off.allowsWrites(4001))
+        assertTrue(off.offForDisplay(1000) == true); assertTrue(off.offForDisplay(4000) == true)
+        assertFalse(off.offForDisplay(999) == true); assertNull(off.offForDisplay(7001))
         assertTrue(off.fresh(6000)); assertFalse(off.fresh(7001))
     }
-    @Test fun anAppUidReturningThreeZerosCannotAuthorizeRecovery() {
+    @Test fun anAppUidReturningThreeZerosCannotBeDisplayedAsOff() {
         val redacted = shell(uid = "10345")
         assertFalse(redacted.trusted); assertNull(redacted.developer)
-        assertFalse(redacted.allowsWrites(1000))
+        assertFalse(redacted.offForDisplay(1000) == true)
     }
     @Test fun missingDeniedOrInvalidValuesAreNotOffEvenFromAShellReader() {
         for (value in listOf("null", "", "SecurityException", "2", "-1")) {
             val invalid = shell(dev = value)
             assertNull(invalid.developer); assertFalse(invalid.allKnown)
-            assertFalse(invalid.allowsWrites(1000))
+            assertFalse(invalid.offForDisplay(1000) == true)
         }
     }
     @Test fun incompleteUnexpectedOrNonNumericOutputCannotLookLikeOff() {
@@ -52,11 +52,11 @@ class DebugSettingsStateTest {
             .put("sampled_elapsed", 1000).put("source", "settings_provider_uncached")
         val sample = DebugSettingsState.fromJson(old)
         assertTrue(sample.allOff); assertFalse(sample.trusted)
-        assertFalse(sample.fresh(1000)); assertFalse(sample.allowsWrites(1000))
+        assertFalse(sample.fresh(1000)); assertFalse(sample.offForDisplay(1000) == true)
     }
     @Test fun slowShellReadKeepsItsStartTimestampInsteadOfClaimingFreshAtCompletion() {
         val sample = shell(began = 1000)
-        assertFalse(sample.allowsWrites(5000))
+        assertNull(sample.offForDisplay(8000))
         assertEquals(1000L, sample.elapsed)
     }
     @Test fun copiedSnapshotsPreserveActualReaderUidSourceAndSampleTime() {
