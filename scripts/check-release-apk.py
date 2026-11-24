@@ -109,7 +109,14 @@ def main():
         failures.append("removed Keep SA configuration key has returned")
     if "waiting_debug_off" in strings:
         failures.append("removed developer-options recovery gate has returned")
+    forbidden_debug = {"development_settings_enabled", "adb_enabled", "adb_wifi_enabled",
+                       "retained_ui_automation_shell", "debug_flags_ui", "debug_flags_keeper",
+                       "debug_flags", "debug_off"}
+    for value in sorted(forbidden_debug & strings):
+        failures.append("removed developer-options detection remains: " + value)
     for descriptor in classes:
+        if descriptor.startswith("Lcom/svenuks/imsforpixel/DebugSettings"):
+            failures.append("removed debug-state reader remains: " + descriptor)
         if descriptor.startswith("Lcom/tananaev/adblib/") or descriptor.endswith("/ImsQueryTool;"):
             failures.append("obsolete code remains: " + descriptor)
     size = args.apk.stat().st_size

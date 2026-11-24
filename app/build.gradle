@@ -14,7 +14,7 @@ android {
         targetSdk 36
         // Match stable 1.2.1 for reversible side-loaded testing with the same signing key.
         versionCode 12
-        versionName "1.2.2-data-test4"
+        versionName "1.2.2-data-test5"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

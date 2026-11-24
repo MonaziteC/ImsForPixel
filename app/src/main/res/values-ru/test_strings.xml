@@ -27,11 +27,6 @@
     <string name="ui_radio_call">Разговор</string>
     <string name="ui_radio_enabled">Вкл.</string>
     <string name="ui_radio_disabled">Выкл.</string>
-    <string name="ui_debug_unconfirmed">Состояние отладки неизвестно или устарело. Это не блокирует восстановление настроек.</string>
-    <string name="ui_debug_flags">Разработчик: %1$s · USB: %2$s · Беспроводная отладка: %3$s</string>
-    <string name="ui_flag_on">Вкл.</string>
-    <string name="ui_flag_off">Выкл.</string>
-    <string name="ui_flag_unknown">Неизвестно</string>
     <string name="ui_radio_usage">Режим выбора сети подписки: %1$s</string>
     <string name="ui_usage_default">Системный</string>
     <string name="ui_usage_voice">Приоритет голоса</string>

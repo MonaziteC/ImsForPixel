@@ -43,7 +43,6 @@ fun PixelImsApp(initialPage: String = "status") {
     var page by rememberSaveable { mutableStateOf(if (initialPage == "config") "config" else "status") }
     var snapshot by remember { mutableStateOf(GuardianStore.latest(context)) }
     var active by remember { mutableStateOf(GuardianStore.active(context, snapshot)) }
-    var debugSettings by remember { mutableStateOf<DebugSettingsState?>(null) }
     var launching by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf<String?>(null) }
@@ -68,9 +67,8 @@ fun PixelImsApp(initialPage: String = "status") {
             }
             withContext(Dispatchers.IO) {
                 val latest = GuardianStore.latest(context)
-                GuardianController.refreshDebug(context, latest)
-                Triple(latest, GuardianStore.active(context, latest), DebugSettingsStore.read(context, latest))
-            }.let { snapshot = it.first; active = it.second; debugSettings = it.third }
+                latest to GuardianStore.active(context, latest)
+            }.let { snapshot = it.first; active = it.second }
             val now = SystemClock.elapsedRealtime()
             if (active && page == "status" && (lifecycle == null || lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) && now - lastMonitor >= 10_000) {
                 withContext(Dispatchers.IO) { runCatching { GuardianController.monitor(context) } }
@@ -117,7 +115,7 @@ fun PixelImsApp(initialPage: String = "status") {
         if (page == "status") StatusPage(Modifier.padding(insets), snapshot, active, busy, autoGuard,
             onApply = { apply() }, onView = { page = "config" }, onRestore = { restoreDialog = true },
             onUsage = { slot, enabled -> runCatching { GuardianController.experiment(context, slot, enabled) } },
-            onRefresh = { runCatching { GuardianController.experiment(context) } }, liveDebug = debugSettings,
+            onRefresh = { runCatching { GuardianController.experiment(context) } },
             onCapture = { runCatching { GuardianController.monitor(context, 120_000) } })
         else ConfigPage(Modifier.padding(insets), prefs, revision, active || busy, busy, autoGuard,
             onApply = { apply() }, onAutoGuard = { prefs.edit().putBoolean("guardian_enabled", it).commit() })
@@ -162,7 +160,7 @@ fun PixelImsApp(initialPage: String = "status") {
 @Composable
 internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boolean, busy: Boolean,
     autoGuard: Boolean, onApply: () -> Unit, onView: () -> Unit, onRestore: () -> Unit,
-    onUsage: (Int, Boolean) -> Unit = { _, _ -> }, onRefresh: () -> Unit = {}, liveDebug: DebugSettingsState? = null,
+    onUsage: (Int, Boolean) -> Unit = { _, _ -> }, onRefresh: () -> Unit = {},
     onCapture: () -> Unit = {}) {
     val context = LocalContext.current
     val pendingUsage = UsagePreferenceStore(context).pendingCount()
@@ -188,20 +186,8 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
                         else Icon(if (healthy) Icons.Default.CheckCircle else Icons.Default.Info, null)
                         Text(stringResource(title), style = MaterialTheme.typography.titleLarge)
                     }
-                    Text(stringResource(when {
-                        active && liveDebug?.offForDisplay(SystemClock.elapsedRealtime()) == true -> R.string.ui_debug_closed
-                        active && !busy && liveDebug?.fresh(SystemClock.elapsedRealtime()) == true && liveDebug.anyOn -> R.string.ui_can_close_debug
-                        active && !busy -> R.string.ui_debug_unconfirmed
-                        else -> R.string.ui_guard_intro
-                    }), style = MaterialTheme.typography.bodyMedium)
-                    @Composable fun flag(value: Int?) = stringResource(when {
-                        liveDebug?.fresh(SystemClock.elapsedRealtime()) != true -> R.string.ui_flag_unknown
-                        value == 1 -> R.string.ui_flag_on
-                        value == 0 -> R.string.ui_flag_off
-                        else -> R.string.ui_flag_unknown
-                    })
-                    Text(stringResource(R.string.ui_debug_flags, flag(liveDebug?.developer), flag(liveDebug?.usb), flag(liveDebug?.wireless)),
-                        style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(if (active && !busy) R.string.ui_guard_session else R.string.ui_guard_intro),
+                        style = MaterialTheme.typography.bodyMedium)
                     if (active && !busy) Text(stringResource(R.string.guard_count, snapshot?.optInt("repairs") ?: 0), style = MaterialTheme.typography.labelLarge)
                     Button(onClick = onApply, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(if (active) R.string.ui_edit else if (autoGuard) R.string.ui_apply_guard else R.string.ui_apply))
@@ -257,7 +243,7 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
                             Text(stringResource(R.string.ui_radio_signal, value("serving_nr_bands"), value("nr_rsrp"), value("nr_sinr")), style = MaterialTheme.typography.bodySmall)
                             Text(stringResource(R.string.ui_radio_bandwidth, if (stale) "—" else RadioChangeHistory.bandwidthLabel(radio.optString("reported_bandwidths_khz")) ?: "—"), style = MaterialTheme.typography.bodySmall)
                             Text(stringResource(R.string.ui_radio_usage, stringResource(when (radio.optInt("subscription_usage_preference", -1)) {
-                                0 -> R.string.ui_usage_default; 1 -> R.string.ui_usage_voice; 2 -> R.string.ui_usage_data; else -> R.string.ui_flag_unknown
+                                0 -> R.string.ui_usage_default; 1 -> R.string.ui_usage_voice; 2 -> R.string.ui_usage_data; else -> R.string.ui_unknown
                             })), style = MaterialTheme.typography.bodySmall)
                             Text(stringResource(R.string.ui_radio_vonr, when {
                                 stale || radio.isNull("vonr_enabled") -> "—"
@@ -282,9 +268,6 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
                                 .put("usage_state", sim.optString("usage_state")).put("usage_current", sim.opt("usage_current"))
                                 .put("radio", sim.optJSONObject("radio")).put("guardian_repairs", snapshot?.optInt("repairs"))
                                 .put("radio_history", history).put("guardian_phase", snapshot?.optString("phase"))
-                                .put("debug_flags_ui", liveDebug?.json() ?: JSONObject.NULL)
-                                .put("debug_flags_keeper", snapshot?.optJSONObject("debug_flags") ?: JSONObject.NULL)
-                                .put("debug_off", liveDebug?.offForDisplay(SystemClock.elapsedRealtime()) ?: JSONObject.NULL)
                             context.getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(
                                 android.content.ClipData.newPlainText("Pixel IMS test snapshot", copy.toString(2)))
                         }) { Text(stringResource(R.string.ui_radio_copy)) }

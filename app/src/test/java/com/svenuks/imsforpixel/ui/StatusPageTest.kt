@@ -1,7 +1,6 @@
 package com.svenuks.imsforpixel.ui
 
 import android.os.SystemClock
-import com.svenuks.imsforpixel.DebugSettingsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -23,7 +22,7 @@ import org.robolectric.annotation.Config
 class StatusPageTest {
     @get:Rule val compose = createComposeRule()
     private fun healthy() = JSONObject().put("state", "running").put("phase", "matching")
-        .put("debug_off", true).put("elapsed", SystemClock.elapsedRealtime()).put("repairs", 4)
+        .put("elapsed", SystemClock.elapsedRealtime()).put("repairs", 4)
 
     @Test fun normalGuardianIsNotShownAsLoadingAndRestoreRemainsAvailable() {
         var restored = false
@@ -58,31 +57,5 @@ class StatusPageTest {
             .put("ims_registered", true).put("usage_requested", true).put("usage_state", "preference_readback")))
         compose.setContent { PixelImsTheme { StatusPage(Modifier, state, true, false, true, {}, {}, {}) } }
         compose.onNodeWithText("Data-centric preference read back · modem unconfirmed").assertExists()
-    }
-    @Test fun currentEnabledDeveloperFlagWinsOverOldKeeperOffBoolean() {
-        val live = DebugSettingsState(1, 0, 0, SystemClock.elapsedRealtime(), 0, DebugSettingsState.SHELL_SOURCE, 2000)
-        compose.setContent { PixelImsTheme {
-            StatusPage(Modifier, healthy(), true, false, true, {}, {}, {}, liveDebug = live)
-        } }
-        compose.onNodeWithText("Developer options and debugging are off. Configuration recovery remains active.").assertDoesNotExist()
-        compose.onNodeWithText("Developer: On · USB: Off · Wireless: Off").assertExists()
-    }
-    @Test fun unknownCurrentFlagsDoNotFallBackToOldKeeperOffBoolean() {
-        val live = DebugSettingsState(null, 0, 0, SystemClock.elapsedRealtime(), 0, DebugSettingsState.SHELL_SOURCE, 2000)
-        compose.setContent { PixelImsTheme {
-            StatusPage(Modifier, healthy(), true, false, true, {}, {}, {}, liveDebug = live)
-        } }
-        compose.onNodeWithText("Developer options and debugging are off. Configuration recovery remains active.").assertDoesNotExist()
-        compose.onNodeWithText("Developer: Unknown · USB: Off · Wireless: Off").assertExists()
-        compose.onNodeWithText("Guardian active").assertExists()
-    }
-    @Test fun redactedProviderZerosCannotBeShownAsOffEvenWithFreshTimestamps() {
-        val live = DebugSettingsState(0, 0, 0, SystemClock.elapsedRealtime(), 0, "settings_provider_uncached")
-        compose.setContent { PixelImsTheme {
-            StatusPage(Modifier, healthy(), true, false, true, {}, {}, {}, liveDebug = live)
-        } }
-        compose.onNodeWithText("Developer options and debugging are off. Configuration recovery remains active.").assertDoesNotExist()
-        compose.onNodeWithText("Developer: Unknown · USB: Unknown · Wireless: Unknown").assertExists()
-        compose.onNodeWithText("Guardian active").assertExists()
     }
 }

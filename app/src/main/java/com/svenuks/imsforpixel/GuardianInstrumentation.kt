@@ -10,13 +10,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.database.ContentObserver
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.Process
 import android.os.SystemClock
-import android.provider.Settings
 import android.telephony.CarrierConfigManager
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
@@ -43,8 +41,6 @@ class GuardianInstrumentation : Instrumentation() {
         var delegated = false
         var listener: CarrierConfigManager.CarrierConfigChangeListener? = null
         var receiver: BroadcastReceiver? = null
-        var debugObserver: ContentObserver? = null
-        var debugReader: DebugSettingsReader? = null
         val executor = Executors.newSingleThreadExecutor()
         var terminal = "failed"
         val last = JSONObject().put("guardian_id", id)
@@ -63,8 +59,6 @@ class GuardianInstrumentation : Instrumentation() {
                 .put("elapsed", SystemClock.elapsedRealtime()).put("started", began)
                 .put("boot", GuardianStore.boot(ctx)).put("pid", Process.myPid())
             last.put("usage_pending_count", UsagePreferenceStore(ctx).pendingCount())
-            val debug = debugReader?.latest ?: DebugSettingsState.unknown("authorization_not_ready")
-            last.put("debug_flags", debug.json()).put("debug_off", debug.offForDisplay(SystemClock.elapsedRealtime()) ?: JSONObject.NULL)
             GuardianStore.write(ctx, last)
             // Always submit the system-required FGS notification. POST_NOTIFICATIONS controls
             // drawer visibility; no zero-ID, invalid-channel, or notification-cancellation trick.
@@ -85,19 +79,6 @@ class GuardianInstrumentation : Instrumentation() {
                 "android.permission.READ_PRIVILEGED_PHONE_STATE", Manifest.permission.MODIFY_PHONE_STATE,
                 Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             delegated = true
-            debugReader = runCatching { DebugSettingsReader(ctx, id, automation) }.getOrNull()
-            GuardianRuntime.debugReader = debugReader
-            debugReader?.request()
-            debugObserver = object : ContentObserver(null) {
-                override fun onChange(selfChange: Boolean) {
-                    debugReader?.settingsChanged()
-                }
-            }
-            runCatching {
-                DebugSettingsState.KEYS.forEach { key ->
-                    ctx.contentResolver.registerContentObserver(Settings.Global.getUriFor(key), false, debugObserver!!)
-                }
-            }
             val sm = ctx.getSystemService(SubscriptionManager::class.java)
             val plan = GuardianPlan.create(request, id, sm.activeSubscriptionInfoList.orEmpty()
                 .map { it.simSlotIndex to it.subscriptionId })
@@ -304,9 +285,6 @@ class GuardianInstrumentation : Instrumentation() {
                 terminal = "restore_failed"
             }
             radio?.close()
-            debugObserver?.let { runCatching { ctx.contentResolver.unregisterContentObserver(it) } }
-            debugReader?.close()
-            GuardianRuntime.debugReader = null
             if (Build.VERSION.SDK_INT >= 34) listener?.let { runCatching { cm.unregisterCarrierConfigChangeListener(it) } }
             receiver?.let { runCatching { ctx.unregisterReceiver(it) } }
             executor.shutdownNow()

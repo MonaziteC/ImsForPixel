@@ -20,8 +20,7 @@
     <string name="ui_guard_healthy">Защита работает</string>
     <string name="ui_applied">Настройки применены</string>
     <string name="ui_guard_idle">Готово к активации</string>
-    <string name="ui_debug_closed">Режим разработчика и отладка отключены. Восстановление настроек продолжает работать.</string>
-    <string name="ui_can_close_debug">Режим разработчика или отладка включены. Восстановление настроек продолжает работать.</string>
+    <string name="ui_guard_session">Авторизованная защита проверяет настройки и восстанавливает их при необходимости.</string>
     <string name="ui_guard_intro">Выберите настройки и авторизуйтесь для применения.</string>
     <string name="ui_edit">Изменить настройки</string>
     <string name="ui_apply_guard">Применить и защищать</string>

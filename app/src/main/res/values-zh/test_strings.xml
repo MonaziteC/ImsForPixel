@@ -27,11 +27,6 @@
     <string name="ui_radio_call">通话中</string>
     <string name="ui_radio_enabled">开启</string>
     <string name="ui_radio_disabled">关闭</string>
-    <string name="ui_debug_unconfirmed">调试状态未知或已过期；不影响自定义配置守护。</string>
-    <string name="ui_debug_flags">开发者选项：%1$s · USB：%2$s · 无线调试：%3$s</string>
-    <string name="ui_flag_on">开启</string>
-    <string name="ui_flag_off">关闭</string>
-    <string name="ui_flag_unknown">未知</string>
     <string name="ui_radio_usage">订阅选网偏好：%1$s</string>
     <string name="ui_usage_default">系统默认</string>
     <string name="ui_usage_voice">语音优先</string>

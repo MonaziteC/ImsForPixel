@@ -27,11 +27,6 @@
     <string name="ui_radio_call">Call in progress</string>
     <string name="ui_radio_enabled">On</string>
     <string name="ui_radio_disabled">Off</string>
-    <string name="ui_debug_unconfirmed">Debugging state is unknown or stale. This does not block configuration recovery.</string>
-    <string name="ui_debug_flags">Developer: %1$s · USB: %2$s · Wireless: %3$s</string>
-    <string name="ui_flag_on">On</string>
-    <string name="ui_flag_off">Off</string>
-    <string name="ui_flag_unknown">Unknown</string>
     <string name="ui_radio_usage">Subscription selection preference: %1$s</string>
     <string name="ui_usage_default">System default</string>
     <string name="ui_usage_voice">Voice-centric</string>

@@ -20,8 +20,7 @@
     <string name="ui_guard_healthy">Guardian active</string>
     <string name="ui_applied">Configuration applied</string>
     <string name="ui_guard_idle">Ready to activate</string>
-    <string name="ui_debug_closed">Developer options and debugging are off. Configuration recovery remains active.</string>
-    <string name="ui_can_close_debug">Developer options or debugging are on. Configuration recovery remains active.</string>
+    <string name="ui_guard_session">The authorized guardian checks custom settings and restores them when needed.</string>
     <string name="ui_guard_intro">Choose your settings, then authorize once to apply them.</string>
     <string name="ui_edit">Edit configuration</string>
     <string name="ui_apply_guard">Apply and protect</string>

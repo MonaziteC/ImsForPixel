@@ -24,7 +24,6 @@ internal object GuardianRuntime {
     val usageCommands = java.util.concurrent.ConcurrentHashMap<Int, Boolean>()
     val refreshProbe = java.util.concurrent.atomic.AtomicBoolean(true)
     @Volatile var monitorUntil = 0L
-    @Volatile var debugReader: DebugSettingsReader? = null
     fun signal() { if (wake.availablePermits() == 0) wake.release() }
 }
 
@@ -77,10 +76,6 @@ class GuardianStopReceiver : BroadcastReceiver() {
         val id = intent.getStringExtra("guardian_id") ?: return
         if (GuardianStore.validId(id)) {
             val action = intent.getStringExtra("action") ?: "stop"
-            if (action == "debug") {
-                if (id == GuardianRuntime.id) GuardianRuntime.debugReader?.request()
-                return
-            }
             if (action == "monitor") {
                 if (id != GuardianRuntime.id) return
                 val now = android.os.SystemClock.elapsedRealtime()
