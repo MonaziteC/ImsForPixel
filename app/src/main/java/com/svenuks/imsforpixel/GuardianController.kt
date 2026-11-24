@@ -13,6 +13,13 @@ import java.io.File
 import java.util.UUID
 
 internal object GuardianController {
+    fun monitor(context: Context, durationMs: Int = 15_000) {
+        val status = GuardianStore.latest(context) ?: return
+        if (!GuardianStore.active(context, status) || status.optString("state") != "running") return
+        context.sendBroadcast(android.content.Intent(context, GuardianStopReceiver::class.java)
+            .putExtra("guardian_id", status.getString("guardian_id")).putExtra("action", "monitor")
+            .putExtra("duration_ms", durationMs.coerceIn(15_000, 120_000)))
+    }
     fun experiment(context: Context, slot: Int? = null, enabled: Boolean = false) {
         val status = GuardianStore.latest(context) ?: return
         check(GuardianStore.active(context, status) && status.optString("state") == "running")

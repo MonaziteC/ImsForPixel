@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.database.ContentObserver
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
@@ -42,6 +43,7 @@ class GuardianInstrumentation : Instrumentation() {
         var delegated = false
         var listener: CarrierConfigManager.CarrierConfigChangeListener? = null
         var receiver: BroadcastReceiver? = null
+        var debugObserver: ContentObserver? = null
         val executor = Executors.newSingleThreadExecutor()
         var terminal = "failed"
         val last = JSONObject().put("guardian_id", id)
@@ -54,15 +56,15 @@ class GuardianInstrumentation : Instrumentation() {
         val usageResults = mutableMapOf<Int, UsagePreferenceExperiment.Result>()
         val changes = java.util.concurrent.ConcurrentHashMap<Int, java.util.concurrent.atomic.AtomicInteger>()
         val cm = ctx.getSystemService(CarrierConfigManager::class.java)
-        fun debugFlag(key: String) = Settings.Global.getInt(ctx.contentResolver, key, -1)
-        fun allOff() = RetainedConfigRecovery.allOff(debugFlag(Settings.Global.DEVELOPMENT_SETTINGS_ENABLED),
-            debugFlag(Settings.Global.ADB_ENABLED), debugFlag("adb_wifi_enabled"))
+        fun allOff() = DebugSettingsState.read(ctx).let { it.allowsWrites(SystemClock.elapsedRealtime()) }
         fun permission() = ctx.checkSelfPermission(Manifest.permission.MODIFY_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
         fun publish(state: String, phase: String) {
             last.put("guardian_id", id).put("state", state).put("phase", phase)
                 .put("elapsed", SystemClock.elapsedRealtime()).put("started", began)
                 .put("boot", GuardianStore.boot(ctx)).put("pid", Process.myPid())
             last.put("usage_pending_count", UsagePreferenceStore(ctx).pendingCount())
+            val debug = DebugSettingsState.read(ctx)
+            last.put("debug_flags", debug.json()).put("debug_off", debug.allowsWrites(SystemClock.elapsedRealtime()))
             GuardianStore.write(ctx, last)
             // Always submit the system-required FGS notification. POST_NOTIFICATIONS controls
             // drawer visibility; no zero-ID, invalid-channel, or notification-cancellation trick.
@@ -83,6 +85,14 @@ class GuardianInstrumentation : Instrumentation() {
                 "android.permission.READ_PRIVILEGED_PHONE_STATE", Manifest.permission.MODIFY_PHONE_STATE,
                 Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             delegated = true
+            debugObserver = object : ContentObserver(null) {
+                override fun onChange(selfChange: Boolean) { GuardianRuntime.signal() }
+            }
+            runCatching {
+                DebugSettingsState.KEYS.forEach { key ->
+                    ctx.contentResolver.registerContentObserver(Settings.Global.getUriFor(key), false, debugObserver!!)
+                }
+            }
             val sm = ctx.getSystemService(SubscriptionManager::class.java)
             val plan = GuardianPlan.create(request, id, sm.activeSubscriptionInfoList.orEmpty()
                 .map { it.simSlotIndex to it.subscriptionId })
@@ -104,6 +114,7 @@ class GuardianInstrumentation : Instrumentation() {
             radio = RadioProbe(ctx, plan.map { it.subId }, executor)
             GuardianRuntime.usageCommands.clear()
             GuardianRuntime.refreshProbe.set(true)
+            GuardianRuntime.monitorUntil = 0L
             GuardianRuntime.closing = false
             GuardianRuntime.serviceFailure = null
             ContextCompat.startForegroundService(ctx, Intent(ctx, GuardianService::class.java).putExtra("guardian_id", id))
@@ -136,7 +147,7 @@ class GuardianInstrumentation : Instrumentation() {
                 lock.acquire(10_000)
                 try {
                     val info = active()
-                    val refreshProbe = GuardianRuntime.refreshProbe.getAndSet(false)
+                    val refreshProbe = GuardianRuntime.refreshProbe.getAndSet(false) || SystemClock.elapsedRealtime() < GuardianRuntime.monitorUntil
                     for (target in plan) {
                         if (present(target) && target.slot !in usageAgents && UsagePreferenceStore(ctx).pendingCount() > 0) {
                             runCatching {
@@ -171,6 +182,7 @@ class GuardianInstrumentation : Instrumentation() {
                             .put("config_matches", results[target.slot]?.matched ?: JSONObject.NULL)
                             .put("ims_registered", if (sim != null) ImsRegistrationReader.read(target.subId) ?: JSONObject.NULL else JSONObject.NULL)
                             .put("radio", if (sim != null) radio?.snapshot(target.subId, refreshProbe) else JSONObject.NULL)
+                            .put("radio_history", radio?.history(target.subId) ?: JSONArray())
                             .put("usage_state", usageResults[target.slot]?.state ?: "off")
                             .put("usage_requested", usageResults[target.slot]?.requested ?: false)
                             .put("usage_current", usageResults[target.slot]?.current ?: JSONObject.NULL)
@@ -235,14 +247,14 @@ class GuardianInstrumentation : Instrumentation() {
                 } catch (_: Exception) { phase = "config_unreadable" }
                 finally { if (lock.isHeld) lock.release() }
                 publish("running", phase)
-                val waitMs = when (phase) {
+                val waitMs = minOf(if (SystemClock.elapsedRealtime() < GuardianRuntime.monitorUntil) 5_000L else 60_000L, when (phase) {
                     "matching" -> if (usageResults.values.any { it.pending }) 2_000L
                         else if (usageResults.values.any { it.requested }) 10_000L else 60_000L
                     "verified", "write_sent", "waiting_readback", "settling" -> 2_000L
                     "cooldown", "write_failed", "readback_timeout" -> 5_000L
                     "rate_limited" -> 30_000L
                     else -> 15_000L
-                }
+                })
                 if (GuardianRuntime.wake.tryAcquire(waitMs, TimeUnit.MILLISECONDS)) {
                     Thread.sleep(1_200)
                     GuardianRuntime.wake.drainPermits()
@@ -288,6 +300,7 @@ class GuardianInstrumentation : Instrumentation() {
                 terminal = "restore_failed"
             }
             radio?.close()
+            debugObserver?.let { runCatching { ctx.contentResolver.unregisterContentObserver(it) } }
             if (Build.VERSION.SDK_INT >= 34) listener?.let { runCatching { cm.unregisterCarrierConfigChangeListener(it) } }
             receiver?.let { runCatching { ctx.unregisterReceiver(it) } }
             executor.shutdownNow()

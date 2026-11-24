@@ -23,6 +23,7 @@ internal object GuardianRuntime {
     val wake = Semaphore(0)
     val usageCommands = java.util.concurrent.ConcurrentHashMap<Int, Boolean>()
     val refreshProbe = java.util.concurrent.atomic.AtomicBoolean(true)
+    @Volatile var monitorUntil = 0L
     fun signal() { if (wake.availablePermits() == 0) wake.release() }
 }
 
@@ -75,6 +76,15 @@ class GuardianStopReceiver : BroadcastReceiver() {
         val id = intent.getStringExtra("guardian_id") ?: return
         if (GuardianStore.validId(id)) {
             val action = intent.getStringExtra("action") ?: "stop"
+            if (action == "monitor") {
+                if (id != GuardianRuntime.id) return
+                val now = android.os.SystemClock.elapsedRealtime()
+                val wasExpired = now >= GuardianRuntime.monitorUntil
+                val duration = intent.getIntExtra("duration_ms", 15_000).coerceIn(15_000, 120_000)
+                GuardianRuntime.monitorUntil = maxOf(GuardianRuntime.monitorUntil, now + duration)
+                if (wasExpired) { GuardianRuntime.refreshProbe.set(true); GuardianRuntime.signal() }
+                return
+            }
             if (action in listOf("refresh", "usage")) {
                 if (id != GuardianRuntime.id) return
                 GuardianRuntime.refreshProbe.set(true)

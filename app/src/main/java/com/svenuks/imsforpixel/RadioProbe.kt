@@ -6,6 +6,8 @@ import android.os.Build
 import android.os.SystemClock
 import android.telephony.CellInfoNr
 import android.telephony.CellIdentityNr
+import android.telephony.CellInfoLte
+import android.telephony.SubscriptionManager
 import android.telephony.CellSignalStrengthNr
 import android.telephony.TelephonyManager
 import android.telephony.ims.ImsMmTelManager
@@ -21,6 +23,9 @@ import java.util.concurrent.Executor
 @SuppressLint("MissingPermission", "NewApi")
 internal class RadioProbe(context: Context, subIds: List<Int>, executor: Executor) : AutoCloseable {
     private val tm = context.getSystemService(TelephonyManager::class.java)
+    private val sm = context.getSystemService(SubscriptionManager::class.java)
+    private val salt = java.util.UUID.randomUUID().toString()
+    private val histories = mutableMapOf<Int, RadioChangeHistory>()
     private val technologies = ConcurrentHashMap<Int, Int>()
     private val cache = mutableMapOf<Int, Pair<Long, JSONObject>>()
     private val registrations = mutableListOf<Pair<ImsMmTelManager, RegistrationManager.RegistrationCallback>>()
@@ -46,7 +51,8 @@ internal class RadioProbe(context: Context, subIds: List<Int>, executor: Executo
         val now = SystemClock.elapsedRealtime()
         cache[subId]?.let { if (!force && now - it.first < 10_000) return it.second }
         val phone = tm.createForSubscriptionId(subId)
-        val row = JSONObject().put("sampled_at", System.currentTimeMillis())
+        val row = JSONObject().put("sampled_at", System.currentTimeMillis()).put("sampled_elapsed", now)
+            .put("bandwidth_source", "ServiceState.getCellBandwidths: cached/ratcheted")
         fun field(key: String, value: () -> Any?) {
             row.put(key, runCatching(value).getOrNull() ?: JSONObject.NULL)
         }
@@ -54,12 +60,21 @@ internal class RadioProbe(context: Context, subIds: List<Int>, executor: Executo
         field("call_state") { phone.callState }
         field("vonr_enabled") { phone.javaClass.getMethod("isVoNrEnabled").invoke(phone) as Boolean }
         field("ims_technology") { technologies[subId] }
+        field("subscription_usage_preference") {
+            sm.getActiveSubscriptionInfo(subId)?.let { it.javaClass.getMethod("getUsageSetting").invoke(it) as Int }
+        }
         val signal = runCatching { phone.signalStrength?.getCellSignalStrengths(CellSignalStrengthNr::class.java)?.firstOrNull() }.getOrNull()
         field("nr_rsrp") { signal?.ssRsrp?.takeUnless { it == Int.MAX_VALUE } }
         field("nr_sinr") { signal?.ssSinr?.takeUnless { it == Int.MAX_VALUE } }
-        field("serving_nr_bands") {
-            if (Build.VERSION.SDK_INT < 30) null else (phone.allCellInfo?.filterIsInstance<CellInfoNr>()
-                ?.firstOrNull { it.isRegistered }?.cellIdentity as? CellIdentityNr)?.bands?.joinToString(",")
+        val cells = runCatching { phone.allCellInfo?.filter { it.isRegistered } }.getOrNull().orEmpty()
+        val nrCells = cells.filterIsInstance<CellInfoNr>()
+        val nr = (nrCells.firstOrNull { it.cellConnectionStatus == 1 } ?: nrCells.firstOrNull())?.cellIdentity as? CellIdentityNr
+        val lteCells = cells.filterIsInstance<CellInfoLte>()
+        val lte = (lteCells.firstOrNull { it.cellConnectionStatus == 1 } ?: lteCells.firstOrNull())?.cellIdentity
+        field("serving_nr_bands") { if (Build.VERSION.SDK_INT >= 30) nr?.bands?.joinToString(",") else null }
+        field("serving_cell_token") {
+            if (nr != null && (row.optInt("data_rat") == 20 || lte == null)) RadioChangeHistory.cellToken(salt, "nr", nr.nci, nr.nrarfcn)
+            else lte?.let { RadioChangeHistory.cellToken(salt, "lte", it.ci.toLong(), it.earfcn) }
         }
         field("reported_bandwidths_khz") {
             phone.serviceState?.let { state ->
@@ -67,8 +82,10 @@ internal class RadioProbe(context: Context, subIds: List<Int>, executor: Executo
             }
         }
         cache[subId] = now to row
+        histories.getOrPut(subId) { RadioChangeHistory() }.record(row)
         return row
     }
+    fun history(subId: Int) = histories[subId]?.json() ?: org.json.JSONArray()
     override fun close() {
         registrations.forEach { (manager, callback) -> runCatching { manager.unregisterImsRegistrationCallback(callback) } }
     }

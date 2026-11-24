@@ -1,6 +1,7 @@
 package com.svenuks.imsforpixel.ui
 
 import android.os.SystemClock
+import com.svenuks.imsforpixel.DebugSettingsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -57,5 +58,21 @@ class StatusPageTest {
             .put("ims_registered", true).put("usage_requested", true).put("usage_state", "preference_readback")))
         compose.setContent { PixelImsTheme { StatusPage(Modifier, state, true, false, true, {}, {}, {}) } }
         compose.onNodeWithText("Data-centric preference read back · modem unconfirmed").assertExists()
+    }
+    @Test fun currentEnabledDeveloperFlagWinsOverOldKeeperOffBoolean() {
+        val live = DebugSettingsState(1, 0, 0, SystemClock.elapsedRealtime(), 0)
+        compose.setContent { PixelImsTheme {
+            StatusPage(Modifier, healthy(), true, false, true, {}, {}, {}, liveDebug = live)
+        } }
+        compose.onNodeWithText("Developer options are off. Your configuration is protected.").assertDoesNotExist()
+        compose.onNodeWithText("Developer: On · USB: Off · Wireless: Off").assertExists()
+    }
+    @Test fun unknownCurrentFlagsDoNotFallBackToOldKeeperOffBoolean() {
+        val live = DebugSettingsState(null, 0, 0, SystemClock.elapsedRealtime(), 0)
+        compose.setContent { PixelImsTheme {
+            StatusPage(Modifier, healthy(), true, false, true, {}, {}, {}, liveDebug = live)
+        } }
+        compose.onNodeWithText("Developer options are off. Your configuration is protected.").assertDoesNotExist()
+        compose.onNodeWithText("Developer: Unknown · USB: Off · Wireless: Off").assertExists()
     }
 }
