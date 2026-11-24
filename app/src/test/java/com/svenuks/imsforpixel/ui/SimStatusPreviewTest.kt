@@ -25,7 +25,7 @@ import java.io.File
 class SimStatusPreviewTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     @Test fun statusCardShowsReportedMeasurementsAndACurrentValueSelector() = render("light")
-    @Test @Config(qualifiers = "zh-rCN-w393dp-h852dp-xhdpi-night")
+    @Test @Config(qualifiers = "zh-rCN-w393dp-h852dp-night-xhdpi")
     fun darkStatusCardUsesTheSameCompactLayout() = render("dark")
 
     private fun render(theme: String) {
