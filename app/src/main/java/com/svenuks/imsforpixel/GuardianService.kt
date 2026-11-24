@@ -22,6 +22,7 @@ internal object GuardianRuntime {
     var ready = CountDownLatch(1)
     val wake = Semaphore(0)
     val usageCommands = java.util.concurrent.ConcurrentHashMap<Int, Int>()
+    @Volatile var statusUntil = 0L
     fun signal() { if (wake.availablePermits() == 0) wake.release() }
 }
 
@@ -74,6 +75,14 @@ class GuardianStopReceiver : BroadcastReceiver() {
         val id = intent.getStringExtra("guardian_id") ?: return
         if (GuardianStore.validId(id)) {
             val action = intent.getStringExtra("action") ?: "stop"
+            if (action == "status") {
+                if (id != GuardianRuntime.id) return
+                val now = android.os.SystemClock.elapsedRealtime()
+                val expired = now >= GuardianRuntime.statusUntil
+                GuardianRuntime.statusUntil = now + 15_000L
+                if (expired) GuardianRuntime.signal()
+                return
+            }
             if (action == "usage") {
                 if (id != GuardianRuntime.id) return
                 val slot = intent.getIntExtra("slot", -1)

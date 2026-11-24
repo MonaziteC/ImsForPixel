@@ -48,6 +48,7 @@ class GuardianInstrumentation : Instrumentation() {
         var phaseBefore = ""
         var reopenPage: String? = null
         var mayRestoreUsage: (() -> Boolean)? = null
+        var radio: RadioStatusReader? = null
         val usageAgents = mutableMapOf<Int, UsagePreferenceExperiment>()
         val usageResults = mutableMapOf<Int, UsagePreferenceExperiment.Result>()
         val changes = java.util.concurrent.ConcurrentHashMap<Int, java.util.concurrent.atomic.AtomicInteger>()
@@ -75,7 +76,8 @@ class GuardianInstrumentation : Instrumentation() {
             automation = getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
                 ?: error("Permission session unavailable")
             automation.adoptShellPermissionIdentity(Manifest.permission.READ_PHONE_STATE,
-                "android.permission.READ_PRIVILEGED_PHONE_STATE", Manifest.permission.MODIFY_PHONE_STATE)
+                "android.permission.READ_PRIVILEGED_PHONE_STATE", Manifest.permission.MODIFY_PHONE_STATE,
+                Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             delegated = true
             val sm = ctx.getSystemService(SubscriptionManager::class.java)
             val plan = GuardianPlan.create(request, id, sm.activeSubscriptionInfoList.orEmpty()
@@ -94,6 +96,8 @@ class GuardianInstrumentation : Instrumentation() {
             }
             GuardianRuntime.id = id
             GuardianRuntime.usageCommands.clear()
+            GuardianRuntime.statusUntil = 0L
+            radio = RadioStatusReader(ctx, plan.map { it.subId }, executor)
             mayRestoreUsage = { permission() && callsIdle() }
             AndroidUsagePreference.restorePending(ctx, mayRestoreUsage!!)
             val prefs = ctx.getSharedPreferences("volte_settings", Context.MODE_PRIVATE)
@@ -161,6 +165,7 @@ class GuardianInstrumentation : Instrumentation() {
                             .put("usage_requested", usageResults[target.slot]?.requested ?: JSONObject.NULL)
                             .put("usage_current", usageResults[target.slot]?.current ?: JSONObject.NULL)
                             .put("usage_pending", usageResults[target.slot]?.pending ?: false)
+                            .put("radio", if (sim != null) runCatching { radio?.snapshot(target.subId) }.getOrNull() ?: JSONObject.NULL else JSONObject.NULL)
                     }))
                     val granted = permission()
                     last.put("permission", granted)
@@ -221,14 +226,14 @@ class GuardianInstrumentation : Instrumentation() {
                 } catch (_: Exception) { phase = "config_unreadable" }
                 finally { if (lock.isHeld) lock.release() }
                 publish("running", phase)
-                val waitMs = when (phase) {
+                val waitMs = minOf(if (SystemClock.elapsedRealtime() < GuardianRuntime.statusUntil) 5_000L else 60_000L, when (phase) {
                     "matching" -> if (usageResults.values.any { it.pending && it.state in listOf(
                         "apply_pending", "restore_pending", "waiting_idle", "restore_waiting") }) 2_000L else 60_000L
                     "verified", "write_sent", "waiting_readback", "write_deferred" -> 2_000L
                     "cooldown", "write_failed", "readback_timeout" -> 5_000L
                     "rate_limited" -> 30_000L
                     else -> 15_000L
-                }
+                })
                 if (GuardianRuntime.wake.tryAcquire(waitMs, TimeUnit.MILLISECONDS)) {
                     Thread.sleep(1_200)
                     GuardianRuntime.wake.drainPermits()
@@ -267,6 +272,7 @@ class GuardianInstrumentation : Instrumentation() {
             android.util.Log.e("ImsGuardian", "Guardian session could not continue", e)
             terminal = if (GuardianStore.command(ctx, id) == "restore") "restore_failed" else "failed"
         } finally {
+            radio?.close()
             if (delegated) runCatching { mayRestoreUsage?.let { AndroidUsagePreference.restorePending(ctx, it) } }
             if (GuardianStore.validId(id) && GuardianStore.command(ctx, id) == "restore" && UsagePreferenceStore(ctx).pendingCount() != 0) {
                 terminal = "restore_failed"

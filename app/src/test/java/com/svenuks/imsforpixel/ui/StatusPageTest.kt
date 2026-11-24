@@ -9,6 +9,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.isPopup
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertTrue
@@ -29,20 +33,19 @@ class StatusPageTest {
     @Test fun threeChoicesDispatchTheirActualIntegerValuesForTheSelectedSim() {
         var chosen = -1
         var chosenSlot = -1
-        val state = healthy().put("sim_status", JSONArray().put(JSONObject().put("slot", 1)
-            .put("present", true).put("name", "Test carrier").put("config_matches", true)
-            .put("ims_registered", true).put("usage_current", 0).put("usage_state", "off")))
-        compose.setContent { PixelImsTheme { StatusPage(Modifier, state, true, false, true, {}, {}, {},
+        val sim = JSONObject().put("slot", 1).put("present", true).put("usage_current", 0).put("usage_state", "off")
+        compose.setContent { PixelImsTheme { UsagePreferenceField(sim, false, false,
             onUsage = { slot, value -> chosenSlot = slot; chosen = value }) } }
-        compose.onNodeWithText("Choose").performScrollTo().performClick()
+        compose.onNodeWithTag("usage-choice-1").performClick()
         compose.onNodeWithText("Voice-centric").performClick()
         compose.waitForIdle()
         assertEquals(1, chosenSlot); assertEquals(1, chosen)
-        compose.onNodeWithText("Choose").performScrollTo().performClick()
+        compose.onNodeWithTag("usage-choice-1").performClick()
         compose.onNodeWithText("Data-centric").performClick(); compose.waitForIdle(); assertEquals(2, chosen)
-        compose.onNodeWithText("Choose").performScrollTo().performClick()
-        compose.onNodeWithText("Default").performClick(); compose.waitForIdle(); assertEquals(0, chosen)
-        compose.onNodeWithText("Subscription read-back: Default").assertExists()
+        compose.onNodeWithTag("usage-choice-1").performClick()
+        compose.onNode(hasText("Default") and hasAnyAncestor(isPopup())).performClick()
+        compose.waitForIdle(); assertEquals(0, chosen)
+
     }
 
     @Test fun normalGuardianIsNotShownAsLoadingAndRestoreRemainsAvailable() {
@@ -61,8 +64,8 @@ class StatusPageTest {
             .put("present", true).put("name", "Test carrier").put("config_matches", true)
             .put("ims_registered", JSONObject.NULL)))
         compose.setContent { PixelImsTheme { StatusPage(Modifier, state, true, false, true, {}, {}, {}) } }
-        compose.onNodeWithText("Not updated").assertExists()
-        compose.onNodeWithText("Not registered").assertDoesNotExist()
+        compose.onNodeWithText("IMS · Not updated").assertExists()
+        compose.onNodeWithText("IMS · Not registered").assertDoesNotExist()
     }
 
     @Test fun restoredStateDoesNotClaimThatGuardianIsStillActive() {

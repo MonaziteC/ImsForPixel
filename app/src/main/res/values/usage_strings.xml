@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="usage_choose">Choose</string>
     <string name="ui_guard_session">The guardian checks and restores your custom settings.</string>
     <string name="usage_title">Network usage preference</string>
     <string name="usage_default">Default</string>
     <string name="usage_voice">Voice-centric</string>
     <string name="usage_data">Data-centric</string>
-    <string name="usage_current">Subscription read-back: %1$s</string>
-    <string name="usage_help">Default (0) follows the device configuration. Voice-centric (1) prioritizes voice availability during network selection; data-centric (2) prioritizes data availability. This does not set download priority, bands or aggregation. Switching uses the current guardian authorization. Stop, edit or undo restores the captured original setting.</string>
-    <string name="usage_readback">Preference read back · modem behavior unconfirmed</string>
-    <string name="usage_applying">Applying preference…</string>
-    <string name="usage_waiting">Waiting for all calls to end</string>
-    <string name="usage_restored">Original setting restored</string>
-    <string name="usage_restoring">Restoring original setting…</string>
-    <string name="usage_unavailable">Setting unavailable, unsupported or unreadable</string>
-    <string name="usage_external">Setting changed externally · automatic changes stopped</string>
-    <string name="usage_failed">Operation unconfirmed · reselect or restore the original setting</string>
-    <string name="usage_idle">Select a preference to apply it</string>
+    <string name="usage_applying">Applying…</string>
+    <string name="usage_waiting">Applies after calls end</string>
+    <string name="usage_restoring">Restoring…</string>
+    <string name="usage_unavailable">Currently unavailable</string>
+    <string name="usage_external">Changed by the system</string>
+    <string name="usage_failed">Unconfirmed · try again</string>
     <string name="usage_pending_warning">An original usage preference still needs recovery, or its record could not be read. Reauthorize with the original SIM present. Restore it before uninstalling, clearing app data or returning to the stable APK.</string>
+    <string name="radio_bandwidth">Reported BW</string>
+    <string name="radio_reported">Reported bandwidth</string>
+    <string name="radio_cached">Cached report</string>
+    <string name="radio_seconds_ago">Reported · %1$d s ago</string>
+    <string name="radio_minutes_ago">Cached · %1$d min ago</string>
+    <string name="radio_lte_nr_available">4G · 5G available</string>
 </resources>

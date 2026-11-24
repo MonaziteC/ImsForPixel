@@ -6,8 +6,6 @@ import android.content.SharedPreferences
 import android.os.SystemClock
 import android.provider.Settings
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
@@ -60,11 +58,21 @@ fun PixelImsApp(initialPage: String = "status") {
         onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
     LaunchedEffect(Unit) {
+        var lastStatus = -10_000L
         while (true) {
+            val lifecycle = (context as? androidx.lifecycle.LifecycleOwner)?.lifecycle
+            if (lifecycle != null && !lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) {
+                delay(1000); continue
+            }
             withContext(Dispatchers.IO) {
                 val latest = GuardianStore.latest(context)
                 latest to GuardianStore.active(context, latest)
             }.let { snapshot = it.first; active = it.second }
+            val now = SystemClock.elapsedRealtime()
+            if (active && page == "status" && now - lastStatus >= 10_000) {
+                withContext(Dispatchers.IO) { runCatching { GuardianController.refreshStatus(context, snapshot) } }
+                lastStatus = now
+            }
             delay(1000)
         }
     }
@@ -157,7 +165,6 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
     onUsage: (Int, Int) -> Unit = { _, _ -> }) {
     val context = LocalContext.current
     val pendingUsage = UsagePreferenceStore(context).pendingCount()
-    var choosingUsage by remember { mutableStateOf<Int?>(null) }
     val rows = snapshot?.optJSONArray("sim_status")
     val phase = snapshot?.optString("phase").orEmpty()
     val stale = active && SystemClock.elapsedRealtime() - (snapshot?.optLong("elapsed") ?: 0) > 120_000
@@ -196,39 +203,8 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
                 color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
         }
         if (active && rows != null) {
-            items(rows.length()) { index ->
-                val sim = rows.getJSONObject(index)
-                OutlinedCard {
-                    ListItem(headlineContent = { Text(stringResource(R.string.ui_sim, sim.optInt("slot") + 1)) },
-                        supportingContent = { Text(sim.optString("name")) },
-                        trailingContent = { Text(stringResource(when {
-                            !sim.optBoolean("present") -> R.string.ui_sim_unavailable
-                            stale || sim.isNull("config_matches") -> R.string.ui_unknown
-                            sim.optBoolean("config_matches") -> R.string.ui_config_ok
-                            else -> R.string.ui_repairing
-                        })) })
-                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
-                    ListItem(headlineContent = { Text(stringResource(R.string.ui_ims)) },
-                        trailingContent = { Text(stringResource(when {
-                            stale || !sim.optBoolean("present") || sim.isNull("ims_registered") -> R.string.ui_unknown
-                            sim.optBoolean("ims_registered") -> R.string.ui_registered
-                            else -> R.string.ui_unregistered
-                        })) })
-                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
-                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.usage_title), style = MaterialTheme.typography.titleMedium)
-                        val current = if (stale || sim.isNull("usage_current")) -1 else sim.optInt("usage_current", -1)
-                        val writing = sim.optString("usage_state") in listOf("apply_pending", "restore_pending", "waiting_idle", "restore_waiting")
-                        TextButton(onClick = { choosingUsage = sim.optInt("slot") },
-                            enabled = !busy && !stale && sim.optBoolean("present") && !writing) {
-                            Text(stringResource(R.string.usage_choose))
-                        }
-                        Text(stringResource(R.string.usage_current, stringResource(usageModeLabel(current))),
-                            style = MaterialTheme.typography.bodyMedium)
-                        Text(stringResource(usageStateLabel(sim.optString("usage_state"))), style = MaterialTheme.typography.bodySmall)
-                        Text(stringResource(R.string.usage_help), style = MaterialTheme.typography.bodySmall)
-                    }
-                }
+            items(rows.length(), key = { rows.getJSONObject(it).optInt("slot") }) { index ->
+                SimStatusCard(rows.getJSONObject(index), stale, busy, onUsage)
             }
         }
         item {
@@ -242,45 +218,6 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
             }
         }
     }
-    val chosen = choosingUsage?.let { slot ->
-        rows?.let { array -> (0 until array.length()).map { array.getJSONObject(it) }.firstOrNull { it.optInt("slot") == slot } }
-    }
-    if (chosen != null && active) AlertDialog(onDismissRequest = { choosingUsage = null },
-        title = { Text(stringResource(R.string.usage_title)) },
-        text = {
-            val current = if (chosen.isNull("usage_current")) -1 else chosen.optInt("usage_current", -1)
-            val desired = if (chosen.isNull("usage_requested")) current else chosen.optInt("usage_requested", -1)
-            Column(Modifier.selectableGroup()) {
-                for (mode in 0..2) Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).selectable(selected = desired == mode,
-                    enabled = !busy && !stale && chosen.optBoolean("present"),
-                    role = androidx.compose.ui.semantics.Role.RadioButton,
-                    onClick = { onUsage(chosen.optInt("slot"), mode); choosingUsage = null }).padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = desired == mode, onClick = null)
-                    Spacer(Modifier.width(12.dp))
-                    Text(stringResource(usageModeLabel(mode)))
-                }
-            }
-        }, confirmButton = { TextButton(onClick = { choosingUsage = null }) { Text(stringResource(R.string.ui_done)) } })
-}
-
-private fun usageModeLabel(value: Int): Int = when (value) {
-    0 -> R.string.usage_default
-    1 -> R.string.usage_voice
-    2 -> R.string.usage_data
-    else -> R.string.ui_unknown
-}
-
-private fun usageStateLabel(value: String): Int = when (value) {
-    "already_selected", "preference_readback" -> R.string.usage_readback
-    "apply_pending" -> R.string.usage_applying
-    "waiting_idle", "restore_waiting" -> R.string.usage_waiting
-    "restored" -> R.string.usage_restored
-    "restore_pending" -> R.string.usage_restoring
-    "unsupported", "unavailable", "unknown_setting" -> R.string.usage_unavailable
-    "external_change" -> R.string.usage_external
-    "apply_failed", "restore_failed" -> R.string.usage_failed
-    else -> R.string.usage_idle
 }
 
 private data class Option(val key: String, val title: Int, val help: Int)
