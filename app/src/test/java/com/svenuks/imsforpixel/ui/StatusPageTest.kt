@@ -60,7 +60,7 @@ class StatusPageTest {
         compose.onNodeWithText("Data-centric preference read back · modem unconfirmed").assertExists()
     }
     @Test fun currentEnabledDeveloperFlagWinsOverOldKeeperOffBoolean() {
-        val live = DebugSettingsState(1, 0, 0, SystemClock.elapsedRealtime(), 0)
+        val live = DebugSettingsState(1, 0, 0, SystemClock.elapsedRealtime(), 0, DebugSettingsState.SHELL_SOURCE, 2000)
         compose.setContent { PixelImsTheme {
             StatusPage(Modifier, healthy(), true, false, true, {}, {}, {}, liveDebug = live)
         } }
@@ -68,11 +68,19 @@ class StatusPageTest {
         compose.onNodeWithText("Developer: On · USB: Off · Wireless: Off").assertExists()
     }
     @Test fun unknownCurrentFlagsDoNotFallBackToOldKeeperOffBoolean() {
-        val live = DebugSettingsState(null, 0, 0, SystemClock.elapsedRealtime(), 0)
+        val live = DebugSettingsState(null, 0, 0, SystemClock.elapsedRealtime(), 0, DebugSettingsState.SHELL_SOURCE, 2000)
         compose.setContent { PixelImsTheme {
             StatusPage(Modifier, healthy(), true, false, true, {}, {}, {}, liveDebug = live)
         } }
         compose.onNodeWithText("Developer options are off. Your configuration is protected.").assertDoesNotExist()
         compose.onNodeWithText("Developer: Unknown · USB: Off · Wireless: Off").assertExists()
+    }
+    @Test fun redactedProviderZerosCannotBeShownAsOffEvenWithFreshTimestamps() {
+        val live = DebugSettingsState(0, 0, 0, SystemClock.elapsedRealtime(), 0, "settings_provider_uncached")
+        compose.setContent { PixelImsTheme {
+            StatusPage(Modifier, healthy(), true, false, true, {}, {}, {}, liveDebug = live)
+        } }
+        compose.onNodeWithText("Developer options are off. Your configuration is protected.").assertDoesNotExist()
+        compose.onNodeWithText("Developer: Unknown · USB: Unknown · Wireless: Unknown").assertExists()
     }
 }

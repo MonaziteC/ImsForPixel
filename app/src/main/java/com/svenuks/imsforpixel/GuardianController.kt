@@ -13,6 +13,11 @@ import java.io.File
 import java.util.UUID
 
 internal object GuardianController {
+    fun refreshDebug(context: Context, status: JSONObject?) {
+        if (status == null || !GuardianStore.active(context, status)) return
+        context.sendBroadcast(android.content.Intent(context, GuardianStopReceiver::class.java)
+            .putExtra("guardian_id", status.getString("guardian_id")).putExtra("action", "debug"))
+    }
     fun monitor(context: Context, durationMs: Int = 15_000) {
         val status = GuardianStore.latest(context) ?: return
         if (!GuardianStore.active(context, status) || status.optString("state") != "running") return

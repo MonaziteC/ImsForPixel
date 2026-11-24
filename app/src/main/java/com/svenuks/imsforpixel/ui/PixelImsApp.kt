@@ -68,7 +68,8 @@ fun PixelImsApp(initialPage: String = "status") {
             }
             withContext(Dispatchers.IO) {
                 val latest = GuardianStore.latest(context)
-                Triple(latest, GuardianStore.active(context, latest), DebugSettingsState.read(context))
+                GuardianController.refreshDebug(context, latest)
+                Triple(latest, GuardianStore.active(context, latest), DebugSettingsStore.read(context, latest))
             }.let { snapshot = it.first; active = it.second; debugSettings = it.third }
             val now = SystemClock.elapsedRealtime()
             if (active && page == "status" && (lifecycle == null || lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) && now - lastMonitor >= 10_000) {
