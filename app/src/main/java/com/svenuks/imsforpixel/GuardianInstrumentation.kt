@@ -48,6 +48,10 @@ class GuardianInstrumentation : Instrumentation() {
         val began = SystemClock.elapsedRealtime()
         var phaseBefore = ""
         var reopenPage: String? = null
+        var radio: RadioProbe? = null
+        var mayRestoreUsage: (() -> Boolean)? = null
+        val usageAgents = mutableMapOf<Int, UsagePreferenceExperiment>()
+        val usageResults = mutableMapOf<Int, UsagePreferenceExperiment.Result>()
         val changes = java.util.concurrent.ConcurrentHashMap<Int, java.util.concurrent.atomic.AtomicInteger>()
         val cm = ctx.getSystemService(CarrierConfigManager::class.java)
         fun debugFlag(key: String) = Settings.Global.getInt(ctx.contentResolver, key, -1)
@@ -58,6 +62,7 @@ class GuardianInstrumentation : Instrumentation() {
             last.put("guardian_id", id).put("state", state).put("phase", phase)
                 .put("elapsed", SystemClock.elapsedRealtime()).put("started", began)
                 .put("boot", GuardianStore.boot(ctx)).put("pid", Process.myPid())
+            last.put("usage_pending_count", UsagePreferenceStore(ctx).pendingCount())
             GuardianStore.write(ctx, last)
             // Always submit the system-required FGS notification. POST_NOTIFICATIONS controls
             // drawer visibility; no zero-ID, invalid-channel, or notification-cancellation trick.
@@ -75,7 +80,8 @@ class GuardianInstrumentation : Instrumentation() {
             automation = getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
                 ?: error("Permission session unavailable")
             automation.adoptShellPermissionIdentity(Manifest.permission.READ_PHONE_STATE,
-                "android.permission.READ_PRIVILEGED_PHONE_STATE", Manifest.permission.MODIFY_PHONE_STATE)
+                "android.permission.READ_PRIVILEGED_PHONE_STATE", Manifest.permission.MODIFY_PHONE_STATE,
+                Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             delegated = true
             val sm = ctx.getSystemService(SubscriptionManager::class.java)
             val plan = GuardianPlan.create(request, id, sm.activeSubscriptionInfoList.orEmpty()
@@ -93,6 +99,11 @@ class GuardianInstrumentation : Instrumentation() {
                     .createForSubscriptionId(info.subscriptionId).callState == TelephonyManager.CALL_STATE_IDLE
             }
             GuardianRuntime.id = id
+            mayRestoreUsage = { permission() && callsIdle() }
+            AndroidUsagePreference.restorePending(ctx, mayRestoreUsage!!)
+            radio = RadioProbe(ctx, plan.map { it.subId }, executor)
+            GuardianRuntime.usageCommands.clear()
+            GuardianRuntime.refreshProbe.set(true)
             GuardianRuntime.closing = false
             GuardianRuntime.serviceFailure = null
             ContextCompat.startForegroundService(ctx, Intent(ctx, GuardianService::class.java).putExtra("guardian_id", id))
@@ -125,12 +136,44 @@ class GuardianInstrumentation : Instrumentation() {
                 lock.acquire(10_000)
                 try {
                     val info = active()
+                    val refreshProbe = GuardianRuntime.refreshProbe.getAndSet(false)
+                    for (target in plan) {
+                        if (present(target) && target.slot !in usageAgents && UsagePreferenceStore(ctx).pendingCount() > 0) {
+                            runCatching {
+                                val port = AndroidUsagePreference(ctx, target.subId)
+                                if (UsagePreferenceStore(ctx).original(port.identity) != null) {
+                                    usageAgents[target.slot] = UsagePreferenceExperiment(port, UsagePreferenceStore(ctx), port.identity)
+                                }
+                            }
+                        }
+                        val command = GuardianRuntime.usageCommands.remove(target.slot)
+                        if (command != null && present(target)) {
+                            runCatching {
+                                val agent = usageAgents.getOrPut(target.slot) {
+                                    val port = AndroidUsagePreference(ctx, target.subId)
+                                    UsagePreferenceExperiment(port, UsagePreferenceStore(ctx), port.identity)
+                                }
+                                agent.request(command)
+                            }.onFailure {
+                                usageResults[target.slot] = UsagePreferenceExperiment.Result("unavailable", false, null, false)
+                            }
+                        }
+                        usageAgents[target.slot]?.let { agent ->
+                            usageResults[target.slot] = agent.tick(SystemClock.elapsedRealtime()) {
+                                permission() && callsIdle() && present(target) && (!agent.requested || allOff())
+                            }
+                        }
+                    }
                     last.put("sim_status", JSONArray(plan.map { target ->
                         val sim = info.firstOrNull { it.subscriptionId == target.subId && it.simSlotIndex == target.slot }
                         JSONObject().put("slot", target.slot).put("present", sim != null)
                             .put("name", sim?.displayName?.toString().orEmpty())
                             .put("config_matches", results[target.slot]?.matched ?: JSONObject.NULL)
                             .put("ims_registered", if (sim != null) ImsRegistrationReader.read(target.subId) ?: JSONObject.NULL else JSONObject.NULL)
+                            .put("radio", if (sim != null) radio?.snapshot(target.subId, refreshProbe) else JSONObject.NULL)
+                            .put("usage_state", usageResults[target.slot]?.state ?: "off")
+                            .put("usage_requested", usageResults[target.slot]?.requested ?: false)
+                            .put("usage_current", usageResults[target.slot]?.current ?: JSONObject.NULL)
                     }))
                     val off = allOff()
                     val granted = permission()
@@ -193,7 +236,8 @@ class GuardianInstrumentation : Instrumentation() {
                 finally { if (lock.isHeld) lock.release() }
                 publish("running", phase)
                 val waitMs = when (phase) {
-                    "matching" -> 60_000L
+                    "matching" -> if (usageResults.values.any { it.pending }) 2_000L
+                        else if (usageResults.values.any { it.requested }) 10_000L else 60_000L
                     "verified", "write_sent", "waiting_readback", "settling" -> 2_000L
                     "cooldown", "write_failed", "readback_timeout" -> 5_000L
                     "rate_limited" -> 30_000L
@@ -237,6 +281,13 @@ class GuardianInstrumentation : Instrumentation() {
             android.util.Log.e("ImsGuardian", "Guardian session could not continue", e)
             terminal = if (GuardianStore.command(ctx, id) == "restore") "restore_failed" else "failed"
         } finally {
+            // Recover before releasing authority. On process death or unavailable authority,
+            // durable receipts remain for the next explicit authorization, never silently erased.
+            if (delegated) runCatching { mayRestoreUsage?.let { AndroidUsagePreference.restorePending(ctx, it) } }
+            if (GuardianStore.validId(id) && GuardianStore.command(ctx, id) == "restore" && UsagePreferenceStore(ctx).pendingCount() != 0) {
+                terminal = "restore_failed"
+            }
+            radio?.close()
             if (Build.VERSION.SDK_INT >= 34) listener?.let { runCatching { cm.unregisterCarrierConfigChangeListener(it) } }
             receiver?.let { runCatching { ctx.unregisterReceiver(it) } }
             executor.shutdownNow()

@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="ui_usage_title">Data-centric selection (experiment)</string>
+    <string name="ui_usage_help">VoNR stays as configured. Preference read-back confirms only the subscription setting, not modem acceptance or faster data. Turning this off or stopping the guardian restores the captured original setting.</string>
+    <string name="ui_usage_pending_warning">An original selection setting is awaiting recovery. Reauthorize and start the guardian or restore defaults. Recover it before uninstalling or downgrading.</string>
+    <string name="ui_usage_readback">Data-centric preference read back · modem unconfirmed</string>
+    <string name="ui_usage_already">Already data-centric · no change made</string>
+    <string name="ui_usage_unsupported">Data-centric mode is not declared supported</string>
+    <string name="ui_usage_unavailable">Preference or SIM identity unavailable · no new change</string>
+    <string name="ui_usage_waiting">Waiting for debugging to be off and all calls to end</string>
+    <string name="ui_usage_applying">Request sent · waiting for preference read-back</string>
+    <string name="ui_usage_restoring">Waiting to restore the original selection setting</string>
+    <string name="ui_usage_restored">Original selection setting restored</string>
+    <string name="ui_usage_external">External change preserved · experiment stopped</string>
+    <string name="ui_usage_failed">Operation unconfirmed · turn off to recover or reauthorize</string>
+    <string name="ui_usage_off">Experiment off</string>
+    <string name="ui_radio_rat">Data: %1$s · IMS registration: %2$s · %3$s</string>
+    <string name="ui_radio_signal">Serving NR band(s): %1$s · RSRP %2$s dBm · SINR %3$s dB</string>
+    <string name="ui_radio_bandwidth">System-reported bandwidth list (kHz): %1$s</string>
+    <string name="ui_radio_vonr">VoNR permission switch: %1$s</string>
+    <string name="ui_radio_sample">Last sample: %1$s</string>
+    <string name="ui_radio_note">Read-only cached observations; missing values are unknown. Bands may require system location access. IMS registration, bandwidth lists and icons do not by themselves confirm CA or an active VoNR call.</string>
+    <string name="ui_radio_refresh">Refresh radio snapshot</string>
+    <string name="ui_radio_copy">Copy comparison snapshot</string>
+    <string name="ui_radio_idle">Idle</string>
+    <string name="ui_radio_ringing">Ringing</string>
+    <string name="ui_radio_call">Call in progress</string>
+    <string name="ui_radio_enabled">On</string>
+    <string name="ui_radio_disabled">Off</string>
+</resources>

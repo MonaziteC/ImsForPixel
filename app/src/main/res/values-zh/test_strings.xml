@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="ui_usage_title">数据优先选网（实验）</string>
+    <string name="ui_usage_help">保留 VoNR 原设置。回读仅确认订阅偏好已保存，不能证明基带已采用或网速改善。关闭试验或停止守护会恢复捕获的原值。</string>
+    <string name="ui_usage_pending_warning">有原选网设置等待恢复。请重新授权并启动守护，或执行恢复默认。卸载、降级前请先恢复。</string>
+    <string name="ui_usage_readback">已读回数据优先偏好 · 基带未确认</string>
+    <string name="ui_usage_already">原本已是数据优先 · 未做修改</string>
+    <string name="ui_usage_unsupported">本机未声明支持数据优先模式</string>
+    <string name="ui_usage_unavailable">无法读取偏好或 SIM 身份 · 未做新修改</string>
+    <string name="ui_usage_waiting">等待关闭调试且所有通话结束</string>
+    <string name="ui_usage_applying">请求已发送 · 等待订阅偏好回读</string>
+    <string name="ui_usage_restoring">等待恢复原选网设置</string>
+    <string name="ui_usage_restored">已恢复原选网设置</string>
+    <string name="ui_usage_external">已保留外部修改 · 试验停止</string>
+    <string name="ui_usage_failed">操作未确认 · 关闭试验恢复或重新授权</string>
+    <string name="ui_usage_off">试验未启用</string>
+    <string name="ui_radio_rat">数据：%1$s · IMS 注册：%2$s · %3$s</string>
+    <string name="ui_radio_signal">服务 NR 频段：%1$s · RSRP %2$s dBm · SINR %3$s dB</string>
+    <string name="ui_radio_bandwidth">系统上报带宽列表（kHz）：%1$s</string>
+    <string name="ui_radio_vonr">VoNR 许可开关：%1$s</string>
+    <string name="ui_radio_sample">上次采样：%1$s</string>
+    <string name="ui_radio_note">仅仅读取缓存状态；缺失值代表未知。部分频段信息需系统位置信息可用。IMS 注册、带宽列表及图标不能单独证明 CA 或本次通话使用 VoNR。</string>
+    <string name="ui_radio_refresh">刷新无线快照</string>
+    <string name="ui_radio_copy">复制对照快照</string>
+    <string name="ui_radio_idle">空闲</string>
+    <string name="ui_radio_ringing">来电中</string>
+    <string name="ui_radio_call">通话中</string>
+    <string name="ui_radio_enabled">开启</string>
+    <string name="ui_radio_disabled">关闭</string>
+</resources>

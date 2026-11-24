@@ -102,7 +102,9 @@ fun PixelImsApp(initialPage: String = "status") {
         snackbarHost = { SnackbarHost(snack) }
     ) { insets ->
         if (page == "status") StatusPage(Modifier.padding(insets), snapshot, active, busy, autoGuard,
-            onApply = { apply() }, onView = { page = "config" }, onRestore = { restoreDialog = true })
+            onApply = { apply() }, onView = { page = "config" }, onRestore = { restoreDialog = true },
+            onUsage = { slot, enabled -> runCatching { GuardianController.experiment(context, slot, enabled) } },
+            onRefresh = { runCatching { GuardianController.experiment(context) } })
         else ConfigPage(Modifier.padding(insets), prefs, revision, active || busy, busy, autoGuard,
             onApply = { apply() }, onAutoGuard = { prefs.edit().putBoolean("guardian_enabled", it).commit() })
     }
@@ -145,7 +147,10 @@ fun PixelImsApp(initialPage: String = "status") {
 
 @Composable
 internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boolean, busy: Boolean,
-    autoGuard: Boolean, onApply: () -> Unit, onView: () -> Unit, onRestore: () -> Unit) {
+    autoGuard: Boolean, onApply: () -> Unit, onView: () -> Unit, onRestore: () -> Unit,
+    onUsage: (Int, Boolean) -> Unit = { _, _ -> }, onRefresh: () -> Unit = {}) {
+    val context = LocalContext.current
+    val pendingUsage = UsagePreferenceStore(context).pendingCount()
     val phase = snapshot?.optString("phase").orEmpty()
     val stale = active && SystemClock.elapsedRealtime() - (snapshot?.optLong("elapsed") ?: 0) > 120_000
     val healthy = active && !stale && phase in listOf("matching", "verified")
@@ -182,6 +187,14 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
             }
         }
         val rows = snapshot?.optJSONArray("sim_status")
+        val experimentRunning = rows?.let { array -> (0 until array.length()).any {
+            val row = array.getJSONObject(it)
+            row.optBoolean("usage_requested") && row.optString("usage_state") in listOf("preference_readback", "apply_pending", "waiting_idle")
+        } } == true
+        if (pendingUsage != 0 && (!active || pendingUsage < 0 || !experimentRunning)) item {
+            OutlinedCard { Text(stringResource(R.string.ui_usage_pending_warning), Modifier.padding(16.dp),
+                color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+        }
         if (active && rows != null) {
             items(rows.length()) { index ->
                 val sim = rows.getJSONObject(index)
@@ -201,6 +214,44 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
                             sim.optBoolean("ims_registered") -> R.string.ui_registered
                             else -> R.string.ui_unregistered
                         })) })
+                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    ListItem(headlineContent = { Text(stringResource(R.string.ui_usage_title)) },
+                        supportingContent = { Text(stringResource(usageStateLabel(sim.optString("usage_state")))) },
+                        trailingContent = { Switch(checked = sim.optBoolean("usage_requested"),
+                            enabled = !busy && !stale && sim.optBoolean("present"),
+                            onCheckedChange = { onUsage(sim.optInt("slot"), it) }) })
+                    Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.ui_usage_help), style = MaterialTheme.typography.bodySmall)
+                        sim.optJSONObject("radio")?.let { radio ->
+                            fun value(key: String): String = if (stale || radio.isNull(key) || !radio.has(key)) "—" else radio.get(key).toString()
+                            val dataRat = when (radio.optInt("data_rat", -1)) { 20 -> "NR (SA)"; 13 -> "LTE"; 19 -> "LTE-CA"; else -> "—" }
+                            val imsRat = when (radio.optInt("ims_technology", -1)) { 0 -> "LTE"; 1 -> "Wi-Fi"; 2 -> "Cross-SIM"; 3 -> "NR"; else -> "—" }
+                            val call = stringResource(when (radio.optInt("call_state", -1)) {
+                                0 -> R.string.ui_radio_idle; 1 -> R.string.ui_radio_ringing; 2 -> R.string.ui_radio_call; else -> R.string.ui_unknown
+                            })
+                            Text(stringResource(R.string.ui_radio_rat, if (stale) "—" else dataRat, if (stale) "—" else imsRat, call), style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.ui_radio_signal, value("serving_nr_bands"), value("nr_rsrp"), value("nr_sinr")), style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.ui_radio_bandwidth, value("reported_bandwidths_khz")), style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.ui_radio_vonr, when {
+                                stale || radio.isNull("vonr_enabled") -> "—"
+                                radio.optBoolean("vonr_enabled") -> stringResource(R.string.ui_radio_enabled)
+                                else -> stringResource(R.string.ui_radio_disabled)
+                            }), style = MaterialTheme.typography.bodySmall)
+                            val sample = radio.optLong("sampled_at", 0)
+                            Text(stringResource(R.string.ui_radio_sample, if (sample == 0L) "—" else java.text.DateFormat.getDateTimeInstance(
+                                java.text.DateFormat.SHORT, java.text.DateFormat.MEDIUM).format(java.util.Date(sample))), style = MaterialTheme.typography.labelSmall)
+                        }
+                        Text(stringResource(R.string.ui_radio_note), style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = onRefresh, enabled = !busy && !stale) { Text(stringResource(R.string.ui_radio_refresh)) }
+                        TextButton(onClick = {
+                            val copy = JSONObject().put("version", BuildConfig.VERSION_NAME).put("slot", sim.optInt("slot") + 1)
+                                .put("usage_state", sim.optString("usage_state")).put("usage_current", sim.opt("usage_current"))
+                                .put("radio", sim.optJSONObject("radio")).put("guardian_repairs", snapshot?.optInt("repairs"))
+                                .put("debug_off", snapshot?.optBoolean("debug_off"))
+                            context.getSystemService(android.content.ClipboardManager::class.java).setPrimaryClip(
+                                android.content.ClipData.newPlainText("Pixel IMS test snapshot", copy.toString(2)))
+                        }) { Text(stringResource(R.string.ui_radio_copy)) }
+                    }
                 }
             }
         }
@@ -215,6 +266,20 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
             }
         }
     }
+}
+
+private fun usageStateLabel(state: String): Int = when (state) {
+    "preference_readback" -> R.string.ui_usage_readback
+    "already_data" -> R.string.ui_usage_already
+    "unsupported" -> R.string.ui_usage_unsupported
+    "unavailable", "unknown_setting" -> R.string.ui_usage_unavailable
+    "waiting_idle" -> R.string.ui_usage_waiting
+    "apply_pending" -> R.string.ui_usage_applying
+    "restore_waiting", "restore_pending" -> R.string.ui_usage_restoring
+    "restored" -> R.string.ui_usage_restored
+    "external_change" -> R.string.ui_usage_external
+    "apply_failed", "restore_failed" -> R.string.ui_usage_failed
+    else -> R.string.ui_usage_off
 }
 
 private data class Option(val key: String, val title: Int, val help: Int)

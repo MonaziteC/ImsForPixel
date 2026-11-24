@@ -12,8 +12,9 @@ android {
         applicationId "com.svenuks.imsforpixel"
         minSdk 29
         targetSdk 36
+        // Match stable 1.2.1 for reversible side-loaded testing with the same signing key.
         versionCode 12
-        versionName "1.2.1"
+        versionName "1.2.2-data-test1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

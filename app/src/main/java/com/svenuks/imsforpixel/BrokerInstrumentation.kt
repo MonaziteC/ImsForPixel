@@ -113,7 +113,7 @@ class BrokerInstrumentation : Instrumentation() {
             } finally {
                 val uiId = arguments?.getString("ui_request_id")
                 if (uiId != null && GuardianStore.validId(uiId)) {
-                    val failed = !completed || (0..1).any { slot ->
+                    val failed = !completed || (clearArg && UsagePreferenceStore(context).pendingCount() != 0) || (0..1).any { slot ->
                         runCatching { java.io.File(context.filesDir, "config_result_$slot.txt").readText().startsWith("ERROR:") }.getOrDefault(false)
                     }
                     val state = if (failed) (if (clearArg) "restore_failed" else "failed") else if (clearArg) "restored" else "applied"
@@ -195,6 +195,11 @@ class BrokerInstrumentation : Instrumentation() {
             method.invoke(carrierConfigManager, subId, values, persistent)
         }
         val simTargets = getActiveSimTargets(subManager)
+        AndroidUsagePreference.restorePending(context) {
+            subManager.activeSubscriptionInfoList.orEmpty().all {
+                telephonyManager.createForSubscriptionId(it.subscriptionId).callState == TelephonyManager.CALL_STATE_IDLE
+            }
+        }
         for (slot in 0..1) java.io.File(context.filesDir, "config_result_$slot.txt").delete()
         Log.d(TAG, "Processing ${simTargets.size} active SIM targets")
 

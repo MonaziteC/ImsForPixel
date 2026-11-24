@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="ui_usage_title">Приоритет данных (эксперимент)</string>
+    <string name="ui_usage_help">Настройка VoNR не изменяется. Обратное чтение подтверждает настройку подписки, но не её применение модемом и не рост скорости. Отключение опыта или защиты восстанавливает исходное значение.</string>
+    <string name="ui_usage_pending_warning">Требуется восстановить исходную настройку. Повторно авторизуйте защиту или восстановите настройки перед удалением приложения либо установкой старой версии.</string>
+    <string name="ui_usage_readback">Приоритет данных прочитан · модем не подтверждён</string>
+    <string name="ui_usage_already">Приоритет данных уже установлен · без изменений</string>
+    <string name="ui_usage_unsupported">Поддержка приоритета данных не заявлена</string>
+    <string name="ui_usage_unavailable">Настройка или SIM недоступна · новых изменений нет</string>
+    <string name="ui_usage_waiting">Ожидание отключения отладки и завершения звонков</string>
+    <string name="ui_usage_applying">Запрос отправлен · ожидание обратного чтения</string>
+    <string name="ui_usage_restoring">Ожидание восстановления исходной настройки</string>
+    <string name="ui_usage_restored">Исходная настройка восстановлена</string>
+    <string name="ui_usage_external">Внешнее изменение сохранено · опыт остановлен</string>
+    <string name="ui_usage_failed">Операция не подтверждена · отключите опыт или авторизуйте повторно</string>
+    <string name="ui_usage_off">Эксперимент выключен</string>
+    <string name="ui_radio_rat">Данные: %1$s · регистрация IMS: %2$s · %3$s</string>
+    <string name="ui_radio_signal">Обслуживающие NR-диапазоны: %1$s · RSRP %2$s dBm · SINR %3$s dB</string>
+    <string name="ui_radio_bandwidth">Полосы по данным системы (кГц): %1$s</string>
+    <string name="ui_radio_vonr">Разрешение VoNR: %1$s</string>
+    <string name="ui_radio_sample">Последний снимок: %1$s</string>
+    <string name="ui_radio_note">Только кэшированные сведения; пропуски означают неизвестные значения. Диапазоны могут требовать геолокацию. Регистрация IMS, полосы и значки не подтверждают CA или текущий звонок VoNR.</string>
+    <string name="ui_radio_refresh">Обновить снимок сети</string>
+    <string name="ui_radio_copy">Копировать снимок</string>
+    <string name="ui_radio_idle">Ожидание</string>
+    <string name="ui_radio_ringing">Входящий звонок</string>
+    <string name="ui_radio_call">Разговор</string>
+    <string name="ui_radio_enabled">Вкл.</string>
+    <string name="ui_radio_disabled">Выкл.</string>
+</resources>

@@ -50,4 +50,12 @@ class StatusPageTest {
         compose.onNodeWithText("Carrier defaults restored").assertExists()
         compose.onNodeWithText("Guardian active").assertDoesNotExist()
     }
+
+    @Test fun experimentReadbackIsNotMisreportedAsModemOrCallConfirmation() {
+        val state = healthy().put("sim_status", JSONArray().put(JSONObject().put("slot", 0)
+            .put("present", true).put("name", "Test carrier").put("config_matches", true)
+            .put("ims_registered", true).put("usage_requested", true).put("usage_state", "preference_readback")))
+        compose.setContent { PixelImsTheme { StatusPage(Modifier, state, true, false, true, {}, {}, {}) } }
+        compose.onNodeWithText("Data-centric preference read back · modem unconfirmed").assertExists()
+    }
 }
