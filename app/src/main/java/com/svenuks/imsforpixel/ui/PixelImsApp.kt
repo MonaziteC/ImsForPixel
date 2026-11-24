@@ -6,6 +6,8 @@ import android.content.SharedPreferences
 import android.os.SystemClock
 import android.provider.Settings
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
@@ -102,7 +104,12 @@ fun PixelImsApp(initialPage: String = "status") {
         snackbarHost = { SnackbarHost(snack) }
     ) { insets ->
         if (page == "status") StatusPage(Modifier.padding(insets), snapshot, active, busy, autoGuard,
-            onApply = { apply() }, onView = { page = "config" }, onRestore = { restoreDialog = true })
+            onApply = { apply() }, onView = { page = "config" }, onRestore = { restoreDialog = true },
+            onUsage = { slot, value -> scope.launch {
+                try { withContext(Dispatchers.IO) { GuardianController.selectUsage(context, slot, value) } }
+                catch (e: CancellationException) { throw e }
+                catch (_: Exception) { snack.showSnackbar(actionFailedMessage) }
+            } })
         else ConfigPage(Modifier.padding(insets), prefs, revision, active || busy, busy, autoGuard,
             onApply = { apply() }, onAutoGuard = { prefs.edit().putBoolean("guardian_enabled", it).commit() })
     }
@@ -143,9 +150,15 @@ fun PixelImsApp(initialPage: String = "status") {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boolean, busy: Boolean,
-    autoGuard: Boolean, onApply: () -> Unit, onView: () -> Unit, onRestore: () -> Unit) {
+    autoGuard: Boolean, onApply: () -> Unit, onView: () -> Unit, onRestore: () -> Unit,
+    onUsage: (Int, Int) -> Unit = { _, _ -> }) {
+    val context = LocalContext.current
+    val pendingUsage = UsagePreferenceStore(context).pendingCount()
+    var choosingUsage by remember { mutableStateOf<Int?>(null) }
+    val rows = snapshot?.optJSONArray("sim_status")
     val phase = snapshot?.optString("phase").orEmpty()
     val stale = active && SystemClock.elapsedRealtime() - (snapshot?.optLong("elapsed") ?: 0) > 120_000
     val healthy = active && !stale && phase in listOf("matching", "verified")
@@ -168,11 +181,8 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
                         else Icon(if (healthy) Icons.Default.CheckCircle else Icons.Default.Info, null)
                         Text(stringResource(title), style = MaterialTheme.typography.titleLarge)
                     }
-                    Text(stringResource(when {
-                        active && snapshot?.optBoolean("debug_off") == true -> R.string.ui_debug_closed
-                        active && !busy -> R.string.ui_can_close_debug
-                        else -> R.string.ui_guard_intro
-                    }), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(if (active && !busy) R.string.ui_guard_session else R.string.ui_guard_intro),
+                        style = MaterialTheme.typography.bodyMedium)
                     if (active && !busy) Text(stringResource(R.string.guard_count, snapshot?.optInt("repairs") ?: 0), style = MaterialTheme.typography.labelLarge)
                     Button(onClick = onApply, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(if (active) R.string.ui_edit else if (autoGuard) R.string.ui_apply_guard else R.string.ui_apply))
@@ -181,7 +191,10 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
                 }
             }
         }
-        val rows = snapshot?.optJSONArray("sim_status")
+        if (pendingUsage < 0 || (!active && pendingUsage > 0)) item {
+            OutlinedCard { Text(stringResource(R.string.usage_pending_warning), Modifier.padding(16.dp),
+                color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+        }
         if (active && rows != null) {
             items(rows.length()) { index ->
                 val sim = rows.getJSONObject(index)
@@ -201,6 +214,20 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
                             sim.optBoolean("ims_registered") -> R.string.ui_registered
                             else -> R.string.ui_unregistered
                         })) })
+                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.usage_title), style = MaterialTheme.typography.titleMedium)
+                        val current = if (stale || sim.isNull("usage_current")) -1 else sim.optInt("usage_current", -1)
+                        val writing = sim.optString("usage_state") in listOf("apply_pending", "restore_pending", "waiting_idle", "restore_waiting")
+                        TextButton(onClick = { choosingUsage = sim.optInt("slot") },
+                            enabled = !busy && !stale && sim.optBoolean("present") && !writing) {
+                            Text(stringResource(R.string.usage_choose))
+                        }
+                        Text(stringResource(R.string.usage_current, stringResource(usageModeLabel(current))),
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(usageStateLabel(sim.optString("usage_state"))), style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.usage_help), style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
         }
@@ -215,6 +242,45 @@ internal fun StatusPage(modifier: Modifier, snapshot: JSONObject?, active: Boole
             }
         }
     }
+    val chosen = choosingUsage?.let { slot ->
+        rows?.let { array -> (0 until array.length()).map { array.getJSONObject(it) }.firstOrNull { it.optInt("slot") == slot } }
+    }
+    if (chosen != null && active) AlertDialog(onDismissRequest = { choosingUsage = null },
+        title = { Text(stringResource(R.string.usage_title)) },
+        text = {
+            val current = if (chosen.isNull("usage_current")) -1 else chosen.optInt("usage_current", -1)
+            val desired = if (chosen.isNull("usage_requested")) current else chosen.optInt("usage_requested", -1)
+            Column(Modifier.selectableGroup()) {
+                for (mode in 0..2) Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).selectable(selected = desired == mode,
+                    enabled = !busy && !stale && chosen.optBoolean("present"),
+                    role = androidx.compose.ui.semantics.Role.RadioButton,
+                    onClick = { onUsage(chosen.optInt("slot"), mode); choosingUsage = null }).padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = desired == mode, onClick = null)
+                    Spacer(Modifier.width(12.dp))
+                    Text(stringResource(usageModeLabel(mode)))
+                }
+            }
+        }, confirmButton = { TextButton(onClick = { choosingUsage = null }) { Text(stringResource(R.string.ui_done)) } })
+}
+
+private fun usageModeLabel(value: Int): Int = when (value) {
+    0 -> R.string.usage_default
+    1 -> R.string.usage_voice
+    2 -> R.string.usage_data
+    else -> R.string.ui_unknown
+}
+
+private fun usageStateLabel(value: String): Int = when (value) {
+    "already_selected", "preference_readback" -> R.string.usage_readback
+    "apply_pending" -> R.string.usage_applying
+    "waiting_idle", "restore_waiting" -> R.string.usage_waiting
+    "restored" -> R.string.usage_restored
+    "restore_pending" -> R.string.usage_restoring
+    "unsupported", "unavailable", "unknown_setting" -> R.string.usage_unavailable
+    "external_change" -> R.string.usage_external
+    "apply_failed", "restore_failed" -> R.string.usage_failed
+    else -> R.string.usage_idle
 }
 
 private data class Option(val key: String, val title: Int, val help: Int)

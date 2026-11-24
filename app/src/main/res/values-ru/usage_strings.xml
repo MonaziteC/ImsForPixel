@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="usage_choose">Выбрать</string>
+    <string name="ui_guard_session">Защита проверяет и восстанавливает выбранные настройки.</string>
+    <string name="usage_title">Предпочтение использования сети</string>
+    <string name="usage_default">По умолчанию</string>
+    <string name="usage_voice">Голос</string>
+    <string name="usage_data">Данные</string>
+    <string name="usage_current">Прочитано из подписки: %1$s</string>
+    <string name="usage_help">Режим 0 определяется устройством. Режим 1 предпочитает доступность голоса, режим 2 — данных при выборе сети. Это не приоритет загрузки и не настройка частот или агрегации. Можно переключать при активной защите; остановка, редактирование или отмена восстанавливает исходное значение.</string>
+    <string name="usage_readback">Настройка прочитана · работа модема не подтверждена</string>
+    <string name="usage_applying">Применение настройки…</string>
+    <string name="usage_waiting">Ожидание завершения всех звонков</string>
+    <string name="usage_restored">Исходное значение восстановлено</string>
+    <string name="usage_restoring">Восстановление исходного значения…</string>
+    <string name="usage_unavailable">Настройка недоступна, не поддерживается или не читается</string>
+    <string name="usage_external">Внешнее изменение · автоматическая запись остановлена</string>
+    <string name="usage_failed">Операция не подтверждена · выберите снова или восстановите исходное значение</string>
+    <string name="usage_idle">Выберите настройку для применения</string>
+    <string name="usage_pending_warning">Нужно восстановить исходное предпочтение либо запись восстановления не читается. Авторизуйтесь с исходной SIM. Завершите восстановление до удаления приложения, очистки данных или возврата к стабильной версии.</string>
+</resources>

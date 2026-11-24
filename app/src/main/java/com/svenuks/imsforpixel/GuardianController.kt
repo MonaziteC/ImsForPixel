@@ -13,6 +13,16 @@ import java.io.File
 import java.util.UUID
 
 internal object GuardianController {
+    fun selectUsage(context: Context, slot: Int, value: Int) {
+        require(slot in 0..1 && value in 0..2)
+        val status = GuardianStore.latest(context) ?: error("Guardian is not running")
+        check(GuardianStore.active(context, status) && status.optString("state") == "running")
+        check(context.getSharedPreferences("volte_settings", Context.MODE_PRIVATE).edit()
+            .putInt("usage_mode_slot_$slot", value).commit())
+        context.sendBroadcast(android.content.Intent(context, GuardianStopReceiver::class.java)
+            .putExtra("guardian_id", status.getString("guardian_id")).putExtra("action", "usage")
+            .putExtra("slot", slot).putExtra("usage_mode", value))
+    }
     fun enabled(context: Context) = context.getSharedPreferences("volte_settings", Context.MODE_PRIVATE)
         .getBoolean("guardian_enabled", true)
 

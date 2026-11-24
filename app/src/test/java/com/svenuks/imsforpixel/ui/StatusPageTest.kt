@@ -8,9 +8,11 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,7 +24,26 @@ import org.robolectric.annotation.Config
 class StatusPageTest {
     @get:Rule val compose = createComposeRule()
     private fun healthy() = JSONObject().put("state", "running").put("phase", "matching")
-        .put("debug_off", true).put("elapsed", SystemClock.elapsedRealtime()).put("repairs", 4)
+        .put("elapsed", SystemClock.elapsedRealtime()).put("repairs", 4)
+
+    @Test fun threeChoicesDispatchTheirActualIntegerValuesForTheSelectedSim() {
+        var chosen = -1
+        var chosenSlot = -1
+        val state = healthy().put("sim_status", JSONArray().put(JSONObject().put("slot", 1)
+            .put("present", true).put("name", "Test carrier").put("config_matches", true)
+            .put("ims_registered", true).put("usage_current", 0).put("usage_state", "off")))
+        compose.setContent { PixelImsTheme { StatusPage(Modifier, state, true, false, true, {}, {}, {},
+            onUsage = { slot, value -> chosenSlot = slot; chosen = value }) } }
+        compose.onNodeWithText("Choose").performScrollTo().performClick()
+        compose.onNodeWithText("Voice-centric").performClick()
+        compose.waitForIdle()
+        assertEquals(1, chosenSlot); assertEquals(1, chosen)
+        compose.onNodeWithText("Choose").performScrollTo().performClick()
+        compose.onNodeWithText("Data-centric").performClick(); compose.waitForIdle(); assertEquals(2, chosen)
+        compose.onNodeWithText("Choose").performScrollTo().performClick()
+        compose.onNodeWithText("Default").performClick(); compose.waitForIdle(); assertEquals(0, chosen)
+        compose.onNodeWithText("Subscription read-back: Default").assertExists()
+    }
 
     @Test fun normalGuardianIsNotShownAsLoadingAndRestoreRemainsAvailable() {
         var restored = false

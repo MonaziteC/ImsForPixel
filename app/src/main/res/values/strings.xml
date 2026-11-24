@@ -38,7 +38,6 @@
     <string name="guard_title">Pixel IMS settings guardian</string>
     <string name="guard_stop">Stop guardian</string>
     <string name="guard_starting">Starting guardian…</string>
-    <string name="guard_wait_off">Waiting for developer options and debugging to be turned off</string>
     <string name="guard_matching">Guardian active · custom configuration matches</string>
     <string name="guard_repairing">Restoring configuration and checking the result…</string>
     <string name="guard_call">Guardian active · recovery paused during a call</string>

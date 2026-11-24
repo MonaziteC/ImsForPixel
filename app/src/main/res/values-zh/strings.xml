@@ -38,7 +38,6 @@
     <string name="guard_title">Pixel IMS 自定义配置守护</string>
     <string name="guard_stop">停止守护</string>
     <string name="guard_starting">正在启动守护…</string>
-    <string name="guard_wait_off">等待关闭开发者选项及调试</string>
     <string name="guard_matching">守护中 · 自定义配置正常</string>
     <string name="guard_repairing">正在补写并确认配置…</string>
     <string name="guard_call">守护中 · 通话期间暂停补写</string>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="usage_choose">选择</string>
+    <string name="ui_guard_session">守护检查自定义配置，发现缺失后自动恢复。</string>
+    <string name="usage_title">网络业务取向</string>
+    <string name="usage_default">系统默认</string>
+    <string name="usage_voice">语音取向</string>
+    <string name="usage_data">数据取向</string>
+    <string name="usage_current">订阅回读：%1$s</string>
+    <string name="usage_help">默认（0）由设备配置决定；语音取向（1）在选网时优先确保语音服务；数据取向（2）优先维持数据服务。不直接设置下载优先级、频段或聚合。守护运行时可直接切换；停止、编辑或撤销时恢复首次修改前的原值。</string>
+    <string name="usage_readback">偏好已回读 · 尚未确认基带实际行为</string>
+    <string name="usage_applying">正在应用取向…</string>
+    <string name="usage_waiting">等待所有通话结束</string>
+    <string name="usage_restored">已恢复原取向</string>
+    <string name="usage_restoring">正在恢复原取向…</string>
+    <string name="usage_unavailable">此设置不可用、不受支持或无法读取</string>
+    <string name="usage_external">检测到外部修改 · 已停止自动变更</string>
+    <string name="usage_failed">操作未确认 · 请重新选择或恢复原值</string>
+    <string name="usage_idle">选择取向后应用</string>
+    <string name="usage_pending_warning">仍有原业务取向待恢复，或恢复记录无法读取。请保留原 SIM 并重新授权恢复；卸载、清除数据或返回正式版前应先完成恢复。</string>
+</resources>

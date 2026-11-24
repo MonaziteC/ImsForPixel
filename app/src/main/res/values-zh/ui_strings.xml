@@ -20,8 +20,6 @@
     <string name="ui_guard_healthy">正在守护</string>
     <string name="ui_applied">配置已应用</string>
     <string name="ui_guard_idle">等待激活</string>
-    <string name="ui_debug_closed">开发者选项已关闭，正在守护自定义配置。</string>
-    <string name="ui_can_close_debug">守护已就绪，可以关闭开发者选项。</string>
     <string name="ui_guard_intro">选择所需配置，再完成一次授权并应用。</string>
     <string name="ui_edit">修改配置</string>
     <string name="ui_apply_guard">应用并守护</string>

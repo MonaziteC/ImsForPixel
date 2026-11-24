@@ -21,6 +21,7 @@ internal object GuardianRuntime {
     @Volatile var serviceFailure: Exception? = null
     var ready = CountDownLatch(1)
     val wake = Semaphore(0)
+    val usageCommands = java.util.concurrent.ConcurrentHashMap<Int, Int>()
     fun signal() { if (wake.availablePermits() == 0) wake.release() }
 }
 
@@ -73,6 +74,16 @@ class GuardianStopReceiver : BroadcastReceiver() {
         val id = intent.getStringExtra("guardian_id") ?: return
         if (GuardianStore.validId(id)) {
             val action = intent.getStringExtra("action") ?: "stop"
+            if (action == "usage") {
+                if (id != GuardianRuntime.id) return
+                val slot = intent.getIntExtra("slot", -1)
+                val mode = intent.getIntExtra("usage_mode", -1)
+                if (slot in 0..1 && mode in 0..2) {
+                    GuardianRuntime.usageCommands[slot] = mode
+                    GuardianRuntime.signal()
+                }
+                return
+            }
             if (action !in listOf("stop", "edit", "restore")) return
             GuardianStore.stop(context, id, action)
             GuardianRuntime.signal()
@@ -82,7 +93,7 @@ class GuardianStopReceiver : BroadcastReceiver() {
 
 internal fun guardianPhaseLabel(phase: String): Int = when (phase) {
     "starting" -> R.string.guard_starting
-    "waiting_debug_off", "settling" -> R.string.guard_wait_off
+    "write_deferred" -> R.string.guard_pending
     "matching", "verified" -> R.string.guard_matching
     "write_sent", "waiting_readback" -> R.string.guard_repairing
     "call_active" -> R.string.guard_call
